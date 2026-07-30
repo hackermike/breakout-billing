@@ -1,5 +1,5 @@
 import calendar as cal_module
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload
@@ -14,6 +14,10 @@ router = APIRouter()
 
 # Default session fee by CPT code, applied when booking.
 DEFAULT_FEES = {"90837": 150.0, "90834": 125.0, "90832": 100.0, "90847": 175.0, "90853": 80.0}
+
+# Recurrence interval (days) for a standing weekly/biweekly appointment.
+REPEAT_INTERVALS = {"weekly": 7, "biweekly": 14}
+MAX_OCCURRENCES = 52
 
 
 @router.get("/calendar")
@@ -100,6 +104,8 @@ async def create_appointment(
     cpt_code: str = Form("90837"),
     fee: float = Form(None),
     status: str = Form("scheduled"),
+    repeat: str = Form("none"),
+    occurrences: int = Form(1),
     db: Session = Depends(get_db),
 ):
     try:
@@ -107,23 +113,34 @@ async def create_appointment(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid date or time") from exc
     _validate_client_and_fee(db, client_id, fee)
-    db.add(
-        Appointment(
-            client_id=client_id,
-            datetime=dt,
-            duration_minutes=duration_minutes,
-            cpt_code=cpt_code,
-            fee=fee if fee is not None else DEFAULT_FEES.get(cpt_code, 150.0),
-            status=status,
+
+    # A weekly/biweekly standing appointment books several dates at once.
+    interval = REPEAT_INTERVALS.get(repeat)
+    count = max(1, min(occurrences, MAX_OCCURRENCES)) if interval else 1
+    resolved_fee = fee if fee is not None else DEFAULT_FEES.get(cpt_code, 150.0)
+    occurrence_dts = [dt + timedelta(days=interval * k) if interval else dt for k in range(count)]
+    for occurrence_dt in occurrence_dts:
+        db.add(
+            Appointment(
+                client_id=client_id,
+                datetime=occurrence_dt,
+                duration_minutes=duration_minutes,
+                cpt_code=cpt_code,
+                fee=resolved_fee,
+                status=status,
+            )
         )
-    )
     db.commit()
 
-    # Re-render the day detail and, out-of-band, refresh that day's calendar chips.
+    # Re-render the clicked day, and refresh chips out-of-band on every day the
+    # series touches (later occurrences may fall on other visible weeks).
+    extra_oob = [
+        (occ.strftime("%Y-%m-%d"), day_appointments(db, occ)) for occ in occurrence_dts[1:]
+    ]
     return templates.TemplateResponse(
         request,
         "partials/day_detail.html",
-        {**day_detail_context(db, dt), "oob_chips": True},
+        {**day_detail_context(db, dt), "oob_chips": True, "extra_oob": extra_oob},
     )
 
 
