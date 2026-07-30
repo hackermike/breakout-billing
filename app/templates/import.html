@@ -11,6 +11,12 @@
     appointments or notes.
   </p>
 
+  {% if error %}
+  <div class="mb-6 p-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300">
+    {{ error }}
+  </div>
+  {% endif %}
+
   {% if result %}
   <div class="mb-6 p-4 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
     <div class="font-medium text-green-800 dark:text-green-300">
@@ -19,6 +25,11 @@
     {% if result.skipped %}
     <div class="text-sm text-gray-600 dark:text-gray-300 mt-1">
       Skipped {{ result.skipped }} row{{ 's' if result.skipped != 1 }} with no name.
+    </div>
+    {% endif %}
+    {% if result.duplicates %}
+    <div class="text-sm text-gray-600 dark:text-gray-300 mt-1">
+      Skipped {{ result.duplicates }} duplicate{{ 's' if result.duplicates != 1 }} (email already on file).
     </div>
     {% endif %}
     {% if result.sample %}

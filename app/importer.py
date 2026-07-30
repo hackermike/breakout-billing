@@ -30,7 +30,16 @@ FIELD_ALIASES: dict[str, set[str]] = {
 # A single combined-name column (split into first/last when no separate columns).
 FULL_NAME_ALIASES = {"clientname", "name", "fullname", "patientname", "clientfullname"}
 
-DATE_FORMATS = ["%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y", "%m-%d-%Y", "%Y/%m/%d", "%d/%m/%Y"]
+# US month/day ordering only. A DMY format is intentionally excluded so an
+# ambiguous value like 05/08/1989 is never silently reinterpreted as 8 May.
+DATE_FORMATS = ["%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y", "%m-%d-%Y", "%Y/%m/%d"]
+
+# Guard against pathological uploads.
+MAX_ROWS = 20000
+
+
+class CsvImportError(ValueError):
+    """Raised when a CSV can't be parsed or exceeds limits; surfaced to the user."""
 
 
 def _norm(header: str) -> str:
@@ -79,10 +88,14 @@ def parse_clients(text: str) -> tuple[list[dict], dict]:
 
     summary = {rows, importable, skipped, unmapped_headers}
     """
-    reader = csv.reader(io.StringIO(text))
-    rows = list(reader)
+    try:
+        rows = list(csv.reader(io.StringIO(text)))
+    except csv.Error as exc:
+        raise CsvImportError(f"Could not read the CSV: {exc}") from exc
     if not rows:
         return [], {"rows": 0, "importable": 0, "skipped": 0, "unmapped_headers": []}
+    if len(rows) - 1 > MAX_ROWS:
+        raise CsvImportError(f"Too many rows ({len(rows) - 1}); limit is {MAX_ROWS}.")
 
     header_map, unmapped = _build_header_map(rows[0])
     clients: list[dict] = []

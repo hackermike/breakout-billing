@@ -58,6 +58,24 @@ def test_import_endpoint_creates_clients(client, db):
     assert db.query(Client).filter_by(last_name="Patel").count() == 1
 
 
+def test_dates_parse_as_us_month_day():
+    clients, _ = parse_clients("First Name,DOB\nAda,05/08/1989\n")
+    assert clients[0]["dob"].isoformat() == "1989-05-08"  # May 8, not 8 May
+
+
+def test_ambiguous_dmy_not_reinterpreted():
+    clients, _ = parse_clients("First Name,DOB\nAda,13/05/1989\n")
+    assert clients[0]["dob"] is None  # month 13 is invalid; no silent DMY fallback
+
+
+def test_import_dedupes_on_email(client, db):
+    csv_text = "First Name,Last Name,Email\nNina,Patel,nina@example.com\n"
+    client.post("/import", files={"file": ("a.csv", csv_text, "text/csv")})
+    r = client.post("/import", files={"file": ("a.csv", csv_text, "text/csv")})
+    assert "duplicate" in r.text.lower()
+    assert db.query(Client).filter_by(email="nina@example.com").count() == 1
+
+
 def test_import_endpoint_with_demo_file(client, db):
     r = client.post(
         "/import",

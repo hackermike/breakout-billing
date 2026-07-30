@@ -13,17 +13,26 @@ This document is a plan; nothing here is built yet.
 2. **Add SMS as an opt-in second phase** via **Twilio** (HIPAA-eligible with a
    BAA), accepting the A2P 10DLC registration overhead.
 3. **Per-client preference** (`none | email | sms | both`) with explicit,
-   timestamped consent — required for both HIPAA and TCPA.
+   timestamped consent. Consent capture is a **TCPA** requirement for automated
+   SMS and a privacy best practice — it is not itself a HIPAA mandate, though
+   HIPAA's minimum-necessary principle still applies to message content.
 4. Keep **PHI out of message bodies** — reminders say *when* and *with whom*,
    never diagnosis or notes.
 
 ## SMS options, cost, and limits
 
 **Twilio Programmable SMS** is the default choice and is **HIPAA-eligible under a
-signed BAA** (a standard/free/trial account is *not* eligible).
+signed BAA**. Eligibility is not automatic: you must request the BAA, have HIPAA
+mode enabled on the account, and use only HIPAA-eligible products — a
+standard/free/trial account is *not* covered. It's a **shared-responsibility**
+model: Twilio secures the platform; we're responsible for consent, PHI
+minimization, and access controls on our side.
 
-- **Per-message cost (US):** ~$0.0079 base + ~$0.003 carrier surcharge ≈
-  **$0.011 per segment** (160 GSM-7 chars). Failed-message fee ~$0.001.
+- **Per-message cost (US, list price as of July 2026):** **$0.0083 per segment**
+  for the first 150k/mo, **$0.0079** for the next 200k, per Twilio's US SMS
+  pricing page. Add a **carrier surcharge ~$0.003/segment** (A2P 10DLC) → roughly
+  **$0.011 all-in**. Failed-message fee ~$0.001. Third-party "$0.0079 flat"
+  figures are outdated estimates; treat Twilio's page as the source of truth.
 - **A2P 10DLC registration is mandatory** for business texting to US numbers:
   brand registration (~$4 sole proprietor / ~$44 standard) + ~$15 per campaign
   vetting, plus small monthly carrier fees. Expect a few days to approve.
@@ -60,13 +69,18 @@ like emailing a superbill PDF.
 
 ### Data model
 - **Client**: `reminder_channel` (`none|email|sms|both`, default `none`),
-  `sms_consent_at` / `email_consent_at` timestamps (proof of opt-in),
-  optional `reminder_lead_hours` override.
+  `sms_consent_at` / `email_consent_at` timestamps (proof of opt-in), and
+  **channel-specific opt-out** flags `sms_opted_out` / `email_opted_out`. An
+  inbound STOP (SMS) or unsubscribe (email) sets the matching flag and is honored
+  immediately and permanently until the client re-opts-in — independent of
+  `reminder_channel`.
 - **Provider/Settings**: chosen SMS + email providers and credentials
   (stored locally / env, never committed), default reminder lead time(s)
   (e.g. 24h and/or 2h before), quiet hours, and the from-identity.
-- **Notification log**: one row per send (appointment, channel, status,
-  timestamp) for auditing and to avoid double-sends.
+- **Notification log**: one row per intended send keyed by
+  `(appointment_id, channel, lead_slot)` with status and timestamp. This is both
+  the audit trail and the **idempotency key** (see below). Log **no PHI** — store
+  the appointment id and status, never the rendered message body.
 
 ### Sending
 - A **`Notifier`** abstraction with `EmailNotifier` and `SmsNotifier`
@@ -74,8 +88,13 @@ like emailing a superbill PDF.
 - Message templates keep PHI minimal:
   > "Reminder: your appointment with Mindful Path Therapy is Tue Feb 3 at
   > 2:00 PM. Reply STOP to opt out."
-- A scheduled task finds appointments entering the lead window and sends via the
-  client's channels, writing to the notification log.
+- **Idempotency contract:** a send for a given `(appointment_id, channel,
+  lead_slot)` happens **at most once**. Before sending, insert/claim the log row
+  (unique on that key); only send if the claim is new; mark status after. This
+  makes double-clicks of the manual panel, retries, and overlapping runs safe.
+- Whoever triggers a send — the **manual panel** (Phase 1) or the **scheduled
+  worker** (Phase 3) — goes through the same dispatcher and the same idempotency
+  check, so the two paths can't double-send.
 
 ### The always-on caveat (architectural)
 Automated reminders need something running when a reminder is *due* — but the app
@@ -92,17 +111,21 @@ no infra), then offer the automated worker for practices that self-host.
 
 ## Phased plan
 
-- **Phase 1 — Email + preferences.** Add per-client `reminder_channel` and
-  consent fields; a Settings section for the email sender (SES/SMTP); a
-  "Reminders due" panel that sends email reminders and logs them. Also unlocks
-  emailing superbills.
+- **Phase 1 — Email + preferences (no scheduler).** Add per-client
+  `reminder_channel`, consent, and opt-out fields; a Settings section for the
+  email sender (SES/SMTP); and a **manual** "Reminders due" panel the therapist
+  opens to send that day's email reminders (idempotent via the log). No automated
+  timer yet. Also unlocks emailing superbills.
 - **Phase 2 — SMS.** Add Twilio (BAA + 10DLC), STOP handling, and SMS templates;
   wire it into the same dispatcher and preferences.
 - **Phase 3 — Automation.** Optional always-on reminder worker (cron) for hosted
   deployments, with quiet hours and multiple lead times.
 
 ## Sources
-- Twilio SMS pricing (US) — https://www.twilio.com/en-us/sms/pricing/us
-- Twilio HIPAA eligibility & BAA — https://www.twilio.com/en-us/blog/sms-hipaa-texting-medical-practice
-- Amazon SES HIPAA — https://www.paubox.com/blog/amazon-ses-hipaa-compliant
-- HIPAA-compliant texting overview — https://www.paubox.com/blog/texting-tools-hipaa-compliance-ultimate-guide
+Primary references preferred; all accessed July 2026 — verify pricing/BAA terms
+against the vendor pages before implementing.
+- Twilio US SMS pricing (primary) — https://www.twilio.com/en-us/sms/pricing/us
+- Twilio HIPAA / BAA (primary) — https://www.twilio.com/en-us/legal/hipaa
+- Twilio: SMS & HIPAA guidance — https://www.twilio.com/en-us/blog/sms-hipaa-texting-medical-practice
+- AWS HIPAA-eligible services (primary, incl. SES) — https://aws.amazon.com/compliance/hipaa-eligible-services-reference/
+- HHS: HIPAA & minimum necessary — https://www.hhs.gov/hipaa/for-professionals/privacy/guidance/minimum-necessary-requirement/index.html
