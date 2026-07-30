@@ -45,5 +45,28 @@
       </button>
     </div>
   </form>
+
+  <section class="mt-8">
+    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">Email (reminders)</h3>
+    {% if email_configured %}
+    <p class="text-sm text-green-700 dark:text-green-400">
+      Configured — sending as <span class="font-mono">{{ email_from }}</span>.
+    </p>
+    {% else %}
+    <p class="text-sm text-gray-500 dark:text-gray-400">
+      Not configured. Reminders run in preview mode (logged, not delivered). To send
+      real email, set these environment variables before starting the app:
+    </p>
+    <ul class="mt-2 text-sm font-mono text-gray-600 dark:text-gray-300 space-y-0.5">
+      <li>SMTP_HOST, SMTP_PORT (default 587)</li>
+      <li>SMTP_USER, SMTP_PASSWORD</li>
+      <li>SMTP_FROM (the from address)</li>
+    </ul>
+    <p class="text-xs text-gray-400 mt-2">
+      For real client data, use a provider that will sign a BAA (e.g. Amazon SES) —
+      see <span class="font-mono">docs/NOTIFICATIONS-PLAN.md</span>.
+    </p>
+    {% endif %}
+  </section>
 </div>
 {% endblock %}

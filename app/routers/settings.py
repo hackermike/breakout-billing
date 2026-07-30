@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.crud import get_or_create_provider
 from app.database import get_db
+from app.notifications import email_configured, email_from
 from app.templates_config import templates
 
 router = APIRouter()
@@ -15,7 +16,13 @@ async def settings_page(request: Request, saved: bool = False, db: Session = Dep
     return templates.TemplateResponse(
         request,
         "settings.html",
-        {"active_nav": "settings", "provider": provider, "saved": saved},
+        {
+            "active_nav": "settings",
+            "provider": provider,
+            "saved": saved,
+            "email_configured": email_configured(),
+            "email_from": email_from(),
+        },
     )
 
 

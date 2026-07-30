@@ -12,6 +12,7 @@ from app.routers import (
     imports,
     pages,
     payments,
+    reminders,
     reports,
     settings,
     superbills,
@@ -33,6 +34,7 @@ app.include_router(payments.router)
 app.include_router(superbills.router)
 app.include_router(settings.router)
 app.include_router(reports.router)
+app.include_router(reminders.router)
 app.include_router(pages.router)
 
 

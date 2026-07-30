@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Reminders — Breakout Billing{% endblock %}
+
+{% block content %}
+<div class="p-6 max-w-3xl">
+  <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-1">Reminders due</h2>
+  <p class="text-gray-500 dark:text-gray-400 mb-6">
+    Upcoming appointments in the next 2 days for clients who opted into email
+    reminders and haven't been reminded yet.
+  </p>
+
+  {% if sent %}
+  <div class="mb-4 px-4 py-2.5 rounded-md bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
+    Sent {{ sent.sent }} reminder{{ 's' if sent.sent != 1 }}{% if sent.failed %}, {{ sent.failed }} failed{% endif %}.
+  </div>
+  {% endif %}
+
+  {% if not email_configured %}
+  <div class="mb-4 px-4 py-2.5 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-sm">
+    Email isn't configured, so reminders run in <strong>preview mode</strong> (logged, not delivered).
+    Set <span class="font-mono">SMTP_HOST</span> / <span class="font-mono">SMTP_FROM</span> (and credentials) to send for real — see Settings.
+  </div>
+  {% endif %}
+
+  <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 dark:bg-slate-900/50 text-gray-500 dark:text-gray-400">
+        <tr>
+          <th class="text-left px-4 py-2 font-medium">When</th>
+          <th class="text-left px-4 py-2 font-medium">Client</th>
+          <th class="text-left px-4 py-2 font-medium">Email</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+        {% for appt in due %}
+        <tr>
+          <td class="px-4 py-2 whitespace-nowrap">{{ appt.datetime.strftime('%a %-m/%-d · %-I:%M %p') }}</td>
+          <td class="px-4 py-2">
+            <a href="/clients/{{ appt.client.id }}" class="hover:text-teal-600 dark:hover:text-teal-400">{{ appt.client.full_name }}</a>
+          </td>
+          <td class="px-4 py-2 text-gray-500 dark:text-gray-400">{{ appt.client.email }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="px-4 py-8 text-center text-gray-400">No reminders due 🎉</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if due %}
+  <form action="/reminders/send" method="post" class="mt-4">
+    <button type="submit"
+            class="px-5 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors">
+      Send {{ due | length }} reminder{{ 's' if due | length != 1 }}
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

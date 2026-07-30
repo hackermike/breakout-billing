@@ -81,6 +81,19 @@ plus a **Generate superbill** button prefilled for that client.
 **Reports** shows income by month, income by payer (client vs. insurance), and
 outstanding balances by client — the bookkeeping view for the practice.
 
+## 8. Send appointment reminders
+
+Turn on **email reminders** per client — either the checkbox on the New Client
+form or the toggle on a client's detail page (only clients who've consented).
+Then open **Reminders** to see appointments in the next two days for opted-in
+clients and send them in one click.
+
+Until you configure email, reminders run in **preview mode** (logged, not
+delivered). To send for real, set `SMTP_HOST`, `SMTP_FROM`, and credentials as
+environment variables before starting the app (see **Settings**). For real client
+data use a provider that signs a BAA — details in
+[NOTIFICATIONS-PLAN.md](NOTIFICATIONS-PLAN.md).
+
 ## Backups
 
 Your whole practice is one file. Run `./scripts/backup.sh` regularly — see
