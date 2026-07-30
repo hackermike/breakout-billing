@@ -22,7 +22,9 @@ class NotificationLog(Base):
     )
 
     id = Column(Integer, primary_key=True)
-    appointment_id = Column(Integer, ForeignKey("appointments.id", ondelete="CASCADE"))
+    appointment_id = Column(
+        Integer, ForeignKey("appointments.id", ondelete="CASCADE"), nullable=False
+    )
     channel = Column(String, nullable=False)      # "email" (Phase 1)
     lead_slot = Column(String, nullable=False, default="reminder")
     status = Column(String, nullable=False)       # "sent" | "failed"

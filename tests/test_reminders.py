@@ -32,14 +32,16 @@ def test_email_reminders_on_property():
     assert not c.email_reminders_on  # no address, no reminders
 
 
-def test_render_reminder_has_no_diagnosis_phi():
+def test_render_reminder_is_minimal_phi():
     provider = Provider(name="Dr. X", practice_name="Mindful Path")
     c = Client(first_name="Rey", last_name="Ann", diagnosis_codes="F41.1")
     appt = Appointment(datetime=datetime(2026, 7, 31, 14, 0), cpt_code="90837")
     appt.client = c
     subject, body = render_reminder(appt, provider)
     assert "Mindful Path" in body
-    assert "F41.1" not in body and "90837" not in body  # minimal PHI
+    # No diagnosis, CPT, or client name in the body.
+    for phi in ("F41.1", "90837", "Rey", "Ann"):
+        assert phi not in body
 
 
 def test_reminders_panel_lists_due(client, db):
@@ -50,16 +52,43 @@ def test_reminders_panel_lists_due(client, db):
     assert "rey@example.com" in r.text
 
 
-def test_send_reminders_is_idempotent(client, db):
+def _configure_email(monkeypatch, delivers=True):
+    import app.routers.reminders as rem
+    monkeypatch.setattr(rem, "email_configured", lambda: True)
+    monkeypatch.setattr(rem, "send_email", lambda *a, **k: delivers)
+
+
+def test_send_reminders_is_idempotent(client, db, monkeypatch):
+    _configure_email(monkeypatch)
     c = _opted_in_client(db)
     _soon(db, c.id)
+
     r1 = client.post("/reminders/send")
     assert "Sent 1 reminder" in r1.text
     assert db.query(NotificationLog).count() == 1
 
-    r2 = client.post("/reminders/send")  # nothing due anymore
+    r2 = client.post("/reminders/send")  # already sent -> nothing due
     assert "Sent 0 reminders" in r2.text
     assert db.query(NotificationLog).count() == 1
+
+
+def test_preview_mode_does_not_finalize(client, db):
+    # No SMTP configured (the test default) -> preview, no log, stays due.
+    c = _opted_in_client(db)
+    _soon(db, c.id)
+    r = client.post("/reminders/send")
+    assert "Previewed 1 reminder" in r.text
+    assert db.query(NotificationLog).count() == 0
+    assert "rey@example.com" in client.get("/reminders").text
+
+
+def test_failed_send_is_retryable(client, db, monkeypatch):
+    _configure_email(monkeypatch, delivers=False)
+    c = _opted_in_client(db)
+    _soon(db, c.id)
+    client.post("/reminders/send")
+    assert db.query(NotificationLog).count() == 0  # claim released on failure
+    assert "rey@example.com" in client.get("/reminders").text  # still due
 
 
 def test_opted_out_client_not_due(client, db):

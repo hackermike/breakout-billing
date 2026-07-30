@@ -11,7 +11,11 @@
 
   {% if sent %}
   <div class="mb-4 px-4 py-2.5 rounded-md bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
+    {% if sent.previewed %}
+    Previewed {{ sent.previewed }} reminder{{ 's' if sent.previewed != 1 }} — not delivered. Configure email to send, and they'll still be due.
+    {% else %}
     Sent {{ sent.sent }} reminder{{ 's' if sent.sent != 1 }}{% if sent.failed %}, {{ sent.failed }} failed{% endif %}.
+    {% endif %}
   </div>
   {% endif %}
 

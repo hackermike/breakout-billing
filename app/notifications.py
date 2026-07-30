@@ -27,7 +27,8 @@ def send_email(to: str, subject: str, body: str) -> bool:
     """Send an email; return True on success. Console mode when SMTP is unset."""
     host = os.getenv("SMTP_HOST")
     if not host:
-        print(f"[email:console] to={to} subject={subject!r}")
+        # Preview mode: log nothing sensitive (no recipient or subject/timing).
+        print("[email:console] preview generated")
         return True
 
     msg = EmailMessage()
@@ -53,8 +54,9 @@ def render_reminder(appt: Appointment, provider: Provider) -> tuple[str, str]:
     practice = provider.practice_name or provider.name or "your therapist"
     when = appt.datetime.strftime("%A, %B %-d at %-I:%M %p")
     subject = f"Appointment reminder — {when}"
+    # Generic greeting: keep the body to practice + date/time, no client-identifying info.
     body = (
-        f"Hi {appt.client.first_name or 'there'},\n\n"
+        "Hello,\n\n"
         f"This is a reminder of your upcoming appointment with {practice} on {when}.\n\n"
         "If you need to reschedule, please reply to this email or call the office.\n\n"
         "To stop receiving these reminders, let us know and we'll turn them off."

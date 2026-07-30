@@ -60,6 +60,10 @@
         <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-1">Email reminders</h3>
         {% if not client.email %}
         <p class="text-xs text-gray-400">Add an email address to enable reminders.</p>
+        {% elif client.email_opted_out %}
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Client has unsubscribed. Re-enabling requires fresh consent.
+        </p>
         {% elif client.email_reminders_on %}
         <p class="text-sm text-green-600 dark:text-green-400 mb-2">On — reminders will be sent.</p>
         <form action="/clients/{{ client.id }}/reminders" method="post">

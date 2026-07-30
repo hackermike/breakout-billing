@@ -86,12 +86,13 @@ async def toggle_reminders(
     client = db.get(Client, client_id)
     if client is None:
         raise HTTPException(status_code=404, detail="Client not found")
-    if enable:
+    # A client's own opt-out is permanent; this preference toggle never clears it.
+    # Re-subscribing an unsubscribed client would need a separate explicit flow.
+    if enable and not client.email_opted_out:
         client.reminder_channel = "email"
-        client.email_opted_out = False
         if client.email_consent_at is None:
             client.email_consent_at = datetime.now()
-    else:
+    elif not enable:
         client.reminder_channel = "none"
     db.commit()
     return RedirectResponse(url=f"/clients/{client_id}", status_code=303)

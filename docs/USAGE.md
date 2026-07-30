@@ -88,9 +88,10 @@ form or the toggle on a client's detail page (only clients who've consented).
 Then open **Reminders** to see appointments in the next two days for opted-in
 clients and send them in one click.
 
-Until you configure email, reminders run in **preview mode** (logged, not
-delivered). To send for real, set `SMTP_HOST`, `SMTP_FROM`, and credentials as
-environment variables before starting the app (see **Settings**). For real client
+Until you configure email, reminders run in **preview mode**: nothing is
+delivered and the reminders stay **due**, so none are lost — once you configure
+email they'll send. To send for real, set `SMTP_HOST`, `SMTP_FROM`, and
+credentials as environment variables before starting the app (see **Settings**). For real client
 data use a provider that signs a BAA — details in
 [NOTIFICATIONS-PLAN.md](NOTIFICATIONS-PLAN.md).
 
