@@ -2,7 +2,8 @@
 from datetime import date, datetime
 
 import app.models  # noqa: F401 — registers models
-from app.database import Base, SessionLocal, engine
+from app.database import SessionLocal
+from app.db_init import run_migrations
 from app.models.appointment import Appointment
 from app.models.client import Client
 from app.models.payment import Payment
@@ -107,7 +108,7 @@ APPT_DATA = [
 
 
 def main():
-    Base.metadata.create_all(bind=engine)
+    run_migrations()
     db = SessionLocal()
 
     if db.query(Client).count() > 0:
