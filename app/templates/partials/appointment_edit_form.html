@@ -70,6 +70,11 @@
       <select name="cpt_code"
               class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
                      bg-white dark:bg-slate-900">
+        {% set bookable_codes = cpt_codes | map(attribute='code') | list %}
+        {% if appointment.cpt_code and appointment.cpt_code not in bookable_codes %}
+        {# Preserve an existing non-bookable/legacy code so saving can't change it. #}
+        <option value="{{ appointment.cpt_code }}" selected>{{ appointment.cpt_code }}</option>
+        {% endif %}
         {% for c in cpt_codes %}
         <option value="{{ c.code }}" {{ 'selected' if c.code == appointment.cpt_code }}>{{ c.label }}</option>
         {% endfor %}

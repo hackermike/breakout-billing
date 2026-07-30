@@ -12,7 +12,7 @@ from collections import defaultdict
 
 from sqlalchemy.orm import Session, joinedload
 
-from app.finances import CHARGEABLE_STATUS, balance_on_services, completed, total_collected
+from app.finances import CHARGEABLE_STATUS, balance_on_services, total_collected
 from app.models.appointment import Appointment
 
 
@@ -25,12 +25,11 @@ def _appointments(db: Session) -> list[Appointment]:
 
 
 def _summary(appts: list[Appointment]) -> dict:
-    charged = sum(a.fee or 0 for a in completed(appts))
-    collected = total_collected(appts)  # all cash received (cash-flow view)
+    services = balance_on_services(appts)
     return {
-        "charged": charged,
-        "collected": collected,
-        "outstanding": round(charged - collected, 2),
+        "charged": services["charged"],
+        "collected": total_collected(appts),   # all cash received (cash-flow view)
+        "outstanding": services["outstanding"],  # A/R, completed-scoped (matches _outstanding)
     }
 
 
