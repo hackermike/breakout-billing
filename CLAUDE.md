@@ -38,6 +38,8 @@ Core features:
 ./dev-scripts/dev-server.sh             # restart dev server, wait until healthy
 ./dev-scripts/open-pr.sh "Title" body.md    # PR with body from a file
 ./dev-scripts/wait-for-review.sh 10      # poll PR #10 until CodeRabbit reviews
+./dev-scripts/merge-pr.sh 10             # squash-merge PR, delete branch, pull main
+node dev-scripts/screenshot.mjs URL out.png  # screenshot a page for verification
 .venv/bin/pytest -q                     # run tests
 .venv/bin/ruff check .                  # lint
 ```
@@ -75,11 +77,39 @@ in Playwright scripts — trips the shell obfuscation check, which cannot be all
 and prompts every single time. Put throwaway browser-driver and debug scripts in
 `scripts/dev/` (gitignored) and run them with `node scripts/dev/<name>.mjs`.
 
+For browser work, import Playwright from the `dev-scripts/pw.mjs` helper
+(`import { chromium } from '../../dev-scripts/pw.mjs'`) rather than hardcoding the
+`~/.npm/_npx/<hash>/` cache path — the helper resolves it wherever it lives. For a
+plain page capture, skip writing a script entirely and run
+`node dev-scripts/screenshot.mjs <url> [out.png]`.
+
 Run project scripts by their path — `./scripts/backup.sh`, `./scripts/smoke.sh`. They
 are committed executable with shebangs, so do not prefix them with `bash`, and do not
 prepend `PATH=...` or other environment assignments. Each prefix becomes part of the
 command string the permission system matches against, so a wrapped or env-prefixed
 invocation misses the allowlist rule and prompts every time.
+
+## Feature workflow
+
+Ship each feature as its own reviewed PR off `main`:
+
+1. `git checkout -b feat/<name>` off an up-to-date `main`.
+2. Implement, and add/extend tests (route tests in `tests/test_routes.py`, e2e in `tests/e2e/`).
+3. `./dev-scripts/lint-and-test.sh` until green.
+4. If the change is visible, `./scripts/reseed.sh && ./dev-scripts/dev-server.sh`, then verify with `node dev-scripts/screenshot.mjs <url>` or a `scripts/dev/*.mjs` driver.
+5. Commit with `git commit -F <file>` (message in `scripts/dev/`), then `./dev-scripts/open-pr.sh "Title" scripts/dev/pr-body.md`.
+6. `./dev-scripts/wait-for-review.sh <pr>`; address CodeRabbit's findings; when CI is green and feedback resolved, `./dev-scripts/merge-pr.sh <pr>`.
+7. Keep the README "What it does" / "Coming next" lists in sync as features land.
+
+## Schema changes
+
+There is no migration framework yet (no Alembic). Tables are created with
+`Base.metadata.create_all`, which **does not alter existing tables** — adding a
+column to a model does not add it to an existing `breakout.db`. After any model
+change, run `./scripts/reseed.sh` to rebuild the demo database, and prefer
+**nullable** columns so the change is backward-compatible. A real migration story
+is required before this is safe for a database holding real patient data (tracked
+in `CLARIFICATIONS.md`).
 
 ## Key Domain Concepts
 

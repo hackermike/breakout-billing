@@ -12,6 +12,7 @@
       "Bash(./scripts/smoke.sh*)",
       "Bash(pkill -f \"uvicorn app.main\"*)",
       "Bash(node scripts/dev/*)",
+      "Bash(node dev-scripts/*)",
       "Bash(./scripts/dev/*)",
       "Bash(./dev-scripts/*)"
     ]
