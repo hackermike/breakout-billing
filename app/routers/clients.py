@@ -90,9 +90,12 @@ async def client_detail(request: Request, client_id: int, db: Session = Depends(
     )
 
     now = datetime.now()
-    charged = sum(a.fee or 0 for a in appointments if a.status == "completed")
-    paid = sum(p.amount for a in appointments for p in a.payments)
-    completed_count = sum(1 for a in appointments if a.status == "completed")
+    # Balance reflects services rendered: charged and paid are both scoped to
+    # completed sessions, so a prepayment on a future session can't understate it.
+    completed = [a for a in appointments if a.status == "completed"]
+    charged = sum(a.fee or 0 for a in completed)
+    paid = sum(p.amount for a in completed for p in a.payments)
+    completed_count = len(completed)
     upcoming = sorted(
         (a for a in appointments if a.datetime >= now and a.status == "scheduled"),
         key=lambda a: a.datetime,
