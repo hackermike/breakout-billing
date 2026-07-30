@@ -1,0 +1,4 @@
+First Name,Last Name,Birthdate,Email,Phone Number,Insurance Company,Policy Number,Group,Diagnosis,Do Not Contact
+Fatima,Hassan,1993-02-17,fatima.hassan@example.com,555-440-1212,Cigna,CIG445120,GRP300,F41.1,No
+Owen,Murphy,1980-09-30,owen.murphy@example.com,555-440-3434,BlueCross BlueShield,BCB882210,GRP301,F43.10,No
+Lucia,Ferrari,1998-07-08,lucia.ferrari@example.com,555-440-5656,UnitedHealthcare,UHC556677,GRP302,"F32.0, F41.9",Yes
