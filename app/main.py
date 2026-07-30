@@ -5,7 +5,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 import app.models  # noqa: F401 — registers all models with Base
-from app.database import Base, engine
+from app.db_init import run_migrations
 from app.routers import (
     calendar,
     clients,
@@ -20,7 +20,7 @@ from app.routers import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
+    run_migrations()
     yield
 
 

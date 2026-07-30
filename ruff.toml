@@ -1,4 +1,6 @@
 line-length = 100
+# Alembic writes these; don't enforce our import style on generated migrations.
+extend-exclude = ["migrations/versions"]
 
 [lint]
 select = ["E", "F", "I"]

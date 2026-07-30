@@ -33,6 +33,8 @@ Core features:
 .venv/bin/uvicorn app.main:app --reload # dev server after first run
 .venv/bin/python seed.py                # re-seed demo data (skips if data exists)
 ./scripts/reseed.sh                     # back up, drop, and re-seed the demo DB
+./dev-scripts/make-migration.sh "msg"   # autogenerate an Alembic migration
+.venv/bin/alembic upgrade head          # apply migrations to the current DB
 ./scripts/backup.sh                     # timestamped DB backup -> backups/
 ./dev-scripts/lint-and-test.sh          # ruff + pytest, the local CI equivalent
 ./dev-scripts/dev-server.sh             # restart dev server, wait until healthy
@@ -103,13 +105,21 @@ Ship each feature as its own reviewed PR off `main`:
 
 ## Schema changes
 
-There is no migration framework yet (no Alembic). Tables are created with
-`Base.metadata.create_all`, which **does not alter existing tables** — adding a
-column to a model does not add it to an existing `breakout.db`. After any model
-change, run `./scripts/reseed.sh` to rebuild the demo database, and prefer
-**nullable** columns so the change is backward-compatible. A real migration story
-is required before this is safe for a database holding real patient data (tracked
-in `CLARIFICATIONS.md`).
+**Alembic owns the schema.** `run_migrations()` (`app/db_init.py`) runs
+`alembic upgrade head` on app startup and in `seed.py`, so the database always
+matches the models. Do **not** use `Base.metadata.create_all` in app code (tests
+still build their schema directly in `tests/conftest.py`, which is fine).
+
+To change the schema:
+1. Edit the model.
+2. `./dev-scripts/make-migration.sh "short description"` — autogenerates a
+   migration in `migrations/versions/`. **Review it** (SQLite alters run in batch
+   mode) and prefer **nullable** columns.
+3. `./scripts/reseed.sh` (fresh demo DB) or `.venv/bin/alembic upgrade head` (apply
+   to an existing DB).
+
+`tests/test_migrations.py` fails if the migrations drift from the models, so a
+missing migration is caught in CI.
 
 ## Key Domain Concepts
 

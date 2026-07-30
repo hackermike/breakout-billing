@@ -7,14 +7,13 @@ real patient data.
 
 ## Top priorities
 
-### 1. Add database migrations (Alembic)
-`Base.metadata.create_all` creates missing tables but **never alters existing
-ones**. Every column added this cycle (`fee`, `telehealth_url`, `series_id`)
-required `./scripts/reseed.sh`, which drops all data. That's fine for demo data
-but a **hard blocker for real patient data** — an existing `breakout.db` silently
-lacks new columns. Introduce Alembic, generate an initial migration from the
-current models, and make `start.sh` run `alembic upgrade head`. This is the
-single most important item before anyone stores real clients.
+### 1. Database migrations (Alembic) — ✅ done
+Alembic is now the schema source of truth: `run_migrations()` runs
+`alembic upgrade head` at app startup and in `seed.py`, `tests/test_migrations.py`
+guards against model/migration drift, and `./dev-scripts/make-migration.sh`
+autogenerates new migrations. Remaining follow-ups: run migrations from
+`start.sh` explicitly for first-run clarity, and (if a pre-Alembic `breakout.db`
+ever exists in the wild) add a one-time `alembic stamp` path for legacy databases.
 
 ### 2. Consolidate financial calculations
 Charged / paid / balance logic is now computed in four places with subtly
