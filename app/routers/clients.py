@@ -1,14 +1,23 @@
-from datetime import datetime
+from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
+from app.crud import STATUS_COLORS
 from app.database import get_db
+from app.models.appointment import Appointment
 from app.models.client import Client
 from app.templates_config import templates
 
 router = APIRouter()
+
+
+def _age(dob: date | None) -> int | None:
+    if dob is None:
+        return None
+    today = date.today()
+    return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
 
 
 @router.get("/clients")
@@ -64,3 +73,53 @@ async def create_client(
     db.add(client)
     db.commit()
     return RedirectResponse(url="/clients", status_code=303)
+
+
+@router.get("/clients/{client_id}")
+async def client_detail(request: Request, client_id: int, db: Session = Depends(get_db)):
+    client = db.get(Client, client_id)
+    if client is None:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    appointments = (
+        db.query(Appointment)
+        .options(joinedload(Appointment.payments))
+        .filter(Appointment.client_id == client_id)
+        .order_by(Appointment.datetime.desc())
+        .all()
+    )
+
+    now = datetime.now()
+    # Balance reflects services rendered: charged and paid are both scoped to
+    # completed sessions, so a prepayment on a future session can't understate it.
+    completed = [a for a in appointments if a.status == "completed"]
+    charged = sum(a.fee or 0 for a in completed)
+    paid = sum(p.amount for a in completed for p in a.payments)
+    completed_count = len(completed)
+    upcoming = sorted(
+        (a for a in appointments if a.datetime >= now and a.status == "scheduled"),
+        key=lambda a: a.datetime,
+    )
+
+    # Per-appointment paid, for the history table.
+    paid_by_appt = {a.id: sum(p.amount for p in a.payments) for a in appointments}
+
+    return templates.TemplateResponse(
+        request,
+        "clients/detail.html",
+        {
+            "active_nav": "clients",
+            "client": client,
+            "age": _age(client.dob),
+            "appointments": appointments,
+            "paid_by_appt": paid_by_appt,
+            "charged": charged,
+            "paid": paid,
+            "outstanding": round(charged - paid, 2),
+            "completed_count": completed_count,
+            "next_appt": upcoming[0] if upcoming else None,
+            "status_colors": STATUS_COLORS,
+            "superbill_start": now.replace(month=1, day=1).date().isoformat(),
+            "superbill_end": now.date().isoformat(),
+        },
+    )

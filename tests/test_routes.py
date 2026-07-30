@@ -27,6 +27,33 @@ def test_create_client(client, db):
     assert db.query(Client).filter_by(last_name="Person").count() == 1
 
 
+def test_client_detail_page(client, sample_appointment):
+    r = client.get(f"/clients/{sample_appointment.client_id}")
+    assert r.status_code == 200
+    assert "Appointment history" in r.text
+    assert "Generate superbill" in r.text
+
+
+def test_client_detail_404(client):
+    assert client.get("/clients/9999").status_code == 404
+
+
+def test_client_detail_running_balance(client, db, sample_client):
+    from datetime import date, datetime
+
+    a = Appointment(client_id=sample_client.id, datetime=datetime(2026, 7, 1, 9, 0),
+                    fee=150.0, status="completed", cpt_code="90837")
+    db.add(a)
+    db.commit()
+    db.refresh(a)
+    db.add(Payment(appointment_id=a.id, amount=50.0, payment_date=date(2026, 7, 1)))
+    db.commit()
+
+    r = client.get(f"/clients/{sample_client.id}")
+    assert r.status_code == 200
+    assert "$100.00" in r.text  # 150 charged - 50 paid = 100 outstanding
+
+
 def test_book_appointment(client, db, sample_client):
     r = client.post(
         "/calendar/day/2026-07-20/appointments",
