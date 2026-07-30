@@ -14,6 +14,10 @@ reimbursement. Add your tax ID and practice address too.
 insurance, their **insurance company, member ID, group number, and ICD-10
 diagnosis codes** (e.g. `F41.1`). Diagnosis codes are required on superbills.
 
+Switching from another system? **Clients → Import** takes a CSV exported from
+SimplePractice, TherapyNotes, TheraNest, or any spreadsheet and matches the
+columns automatically. See [IMPORT.md](IMPORT.md).
+
 ## 3. Book appointments
 
 On the **Calendar**, click a day, then **+ Add appointment**. Pick the client,
@@ -22,7 +26,16 @@ auto-fills from the CPT code but you can override it. The new appointment appear
 on the calendar immediately.
 
 Statuses: **scheduled**, **completed**, **cancelled**, **no-show** — each shows a
-distinct color on the calendar.
+distinct color on the calendar. Add an optional **telehealth link** and a
+"Join video call" button appears in the day view.
+
+**Recurring:** choose a weekly or biweekly repeat and a number of occurrences to
+book a standing slot in one go.
+
+**Editing:** open a day, click **Edit** on an appointment to change any detail,
+move it to another day, or delete it. For a recurring appointment you can apply
+the change (or a cancellation) to **just this one** or **this and all future**
+occurrences.
 
 ## 4. Record payments
 
@@ -55,6 +68,18 @@ Not yet built (candidates for future work): electronic claim submission (837
 files / clearinghouse), ERA/EOB auto-posting of insurance payments, in-network
 copay tracking, and secondary insurance. These are the hardest and most valuable
 parts of a full billing system — see [CLARIFICATIONS.md](../CLARIFICATIONS.md).
+
+## 6. Track a client's history and balance
+
+Click a client in the **Clients** list to open their detail page: contact and
+insurance info, a running **balance** (charged, paid, outstanding across
+completed sessions), the next upcoming appointment, and full session history —
+plus a **Generate superbill** button prefilled for that client.
+
+## 7. See the numbers
+
+**Reports** shows income by month, income by payer (client vs. insurance), and
+outstanding balances by client — the bookkeeping view for the practice.
 
 ## Backups
 

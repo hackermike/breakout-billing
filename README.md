@@ -15,6 +15,7 @@
 
 - **Calendar** — month view of appointments, color-coded by status. Click a day to see details, book new appointments inline (they appear live, no page reload), and record payments.
 - **Clients** — add clients with demographics, insurance info, and ICD-10 diagnosis codes; each client has a detail page with appointment history, running balance, and one-click superbill generation.
+- **Import** — bring your client list over from SimplePractice, TherapyNotes, TheraNest, or any spreadsheet; columns are matched automatically. See [docs/IMPORT.md](docs/IMPORT.md).
 - **Payments** — record payments against any appointment; balances and paid-in-full status update automatically.
 - **Edit & reschedule** — change any appointment, move it to another day (calendar chips update live), or delete it.
 - **Recurring appointments** — book a weekly or biweekly standing slot for up to 52 sessions in one go, and edit or cancel *this and all future* occurrences as a group.
@@ -24,7 +25,10 @@
 - **Settings** — store your provider details (NPI, credentials, tax ID) once; they flow onto every superbill.
 - **Light & dark mode**, and everything runs on your own machine.
 
-Coming next: the insurance workflows in [CLARIFICATIONS.md](CLARIFICATIONS.md).
+Want the full tour with realistic data in one command? Run `./scripts/demo.sh`
+(see [demo/README.md](demo/README.md)).
+
+Coming next: appointment reminders (see [docs/NOTIFICATIONS-PLAN.md](docs/NOTIFICATIONS-PLAN.md)) and the insurance workflows in [CLARIFICATIONS.md](CLARIFICATIONS.md).
 
 <p align="center">
   <img src="docs/screenshot-dark.png" alt="Dark mode" width="49%" />
