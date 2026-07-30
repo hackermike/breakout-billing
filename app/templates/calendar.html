@@ -40,9 +40,10 @@
           {% if day == 0 %}
           <div class="min-h-28 border-r border-b border-gray-200 bg-gray-50/60 p-1.5"></div>
           {% else %}
+          {% set date_str = "%04d-%02d-%02d"|format(year, month, day) %}
           <div
             class="min-h-28 border-r border-b border-gray-200 bg-white hover:bg-slate-50/70 cursor-pointer p-1.5 transition-colors"
-            hx-get="/calendar/day/{{ year }}-{{ month|zeropad }}-{{ day|zeropad }}"
+            hx-get="/calendar/day/{{ date_str }}"
             hx-target="#day-detail"
             hx-swap="innerHTML"
           >
@@ -53,17 +54,9 @@
               <span class="text-xs text-gray-500 w-6 h-6 flex items-center justify-center">{{ day }}</span>
               {% endif %}
             </div>
-            {% set day_appts = appts_by_day.get(day, []) %}
-            <div class="space-y-0.5">
-              {% for appt in day_appts[:3] %}
-              <div class="text-xs px-1.5 py-0.5 rounded border truncate {{ status_colors[appt.status] }}">
-                {{ appt.datetime.strftime('%I:%M').lstrip('0') }} {{ appt.client.last_name }}
-              </div>
-              {% endfor %}
-              {% if day_appts|length > 3 %}
-              <div class="text-xs text-gray-400 px-1">+{{ day_appts|length - 3 }} more</div>
-              {% endif %}
-            </div>
+            {% with appointments = appts_by_day.get(day, []), oob = False %}
+              {% include "partials/day_chips.html" %}
+            {% endwith %}
           </div>
           {% endif %}
         {% endfor %}
