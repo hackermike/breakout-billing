@@ -4,6 +4,21 @@
              bg-slate-50 dark:bg-slate-800 space-y-2.5 text-sm">
   <div class="font-medium text-gray-700 dark:text-gray-200">Edit appointment</div>
 
+  {% if appointment.series_id %}
+  <div class="rounded-md bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 p-2">
+    <div class="text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">🔁 Part of a recurring series</div>
+    <label class="block">
+      <span class="text-xs text-gray-500 dark:text-gray-400">Apply changes to</span>
+      <select name="scope"
+              class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
+                     bg-white dark:bg-slate-900">
+        <option value="this" selected>This appointment only</option>
+        <option value="future">This and all future appointments</option>
+      </select>
+    </label>
+  </div>
+  {% endif %}
+
   <label class="block">
     <span class="text-xs text-gray-500 dark:text-gray-400">Client</span>
     <select name="client_id" required
@@ -97,7 +112,8 @@
     <button type="button"
             hx-post="/appointments/{{ appointment.id }}/delete"
             hx-target="#day-detail" hx-swap="innerHTML"
-            hx-confirm="Delete this appointment and its payments? This cannot be undone."
+            hx-include="[name='scope']"
+            hx-confirm="{% if appointment.series_id %}Delete the selected appointment(s) and their payments? This cannot be undone.{% else %}Delete this appointment and its payments? This cannot be undone.{% endif %}"
             class="px-3 py-1.5 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300
                    rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
       Delete

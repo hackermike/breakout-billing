@@ -17,14 +17,14 @@
 - **Clients** — add clients with demographics, insurance info, and ICD-10 diagnosis codes; each client has a detail page with appointment history, running balance, and one-click superbill generation.
 - **Payments** — record payments against any appointment; balances and paid-in-full status update automatically.
 - **Edit & reschedule** — change any appointment, move it to another day (calendar chips update live), or delete it.
-- **Recurring appointments** — book a weekly or biweekly standing slot for up to 52 sessions in one go.
+- **Recurring appointments** — book a weekly or biweekly standing slot for up to 52 sessions in one go, and edit or cancel *this and all future* occurrences as a group.
 - **Telehealth links** — attach a video-visit link to any appointment; a "Join video call" button appears in the day view.
 - **Superbills** — generate a professional PDF a client submits to their insurer for out-of-network reimbursement, with your NPI, CPT/ICD-10 codes, fees, and payments.
 - **Reports** — income by month, income by payer, and outstanding balances (accounts receivable).
 - **Settings** — store your provider details (NPI, credentials, tax ID) once; they flow onto every superbill.
 - **Light & dark mode**, and everything runs on your own machine.
 
-Coming next: editing a recurring series as a group, and the insurance workflows in [CLARIFICATIONS.md](CLARIFICATIONS.md).
+Coming next: the insurance workflows in [CLARIFICATIONS.md](CLARIFICATIONS.md).
 
 <p align="center">
   <img src="docs/screenshot-dark.png" alt="Dark mode" width="49%" />

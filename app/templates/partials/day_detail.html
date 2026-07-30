@@ -16,7 +16,9 @@
         {{ appt.datetime.strftime('%-I:%M %p') }} &middot; {{ appt.duration_minutes }} min
       </div>
       <div class="flex items-center justify-between mt-2">
-        <span class="text-xs font-mono opacity-60">CPT {{ appt.cpt_code }}</span>
+        <span class="text-xs font-mono opacity-60">
+          CPT {{ appt.cpt_code }}{% if appt.series_id %} <span title="Recurring series">🔁</span>{% endif %}
+        </span>
         <span class="text-xs capitalize opacity-75">{{ appt.status.replace('_', ' ') }}</span>
       </div>
 
