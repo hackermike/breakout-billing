@@ -81,6 +81,59 @@ def test_record_payment_unknown_appointment_404(client):
     assert r.status_code == 404
 
 
+def test_book_weekly_recurring(client, db, sample_client):
+    from datetime import timedelta
+    r = client.post(
+        "/calendar/day/2026-07-06/appointments",
+        data={"client_id": sample_client.id, "time": "10:00",
+              "repeat": "weekly", "occurrences": "4"},
+    )
+    assert r.status_code == 200
+    appts = (
+        db.query(Appointment)
+        .filter_by(client_id=sample_client.id)
+        .order_by(Appointment.datetime)
+        .all()
+    )
+    assert len(appts) == 4
+    assert appts[0].datetime.strftime("%Y-%m-%d") == "2026-07-06"
+    assert appts[3].datetime.strftime("%Y-%m-%d") == "2026-07-27"
+    assert appts[1].datetime - appts[0].datetime == timedelta(days=7)
+
+
+def test_biweekly_recurring_interval(client, db, sample_client):
+    from datetime import timedelta
+    client.post(
+        "/calendar/day/2026-07-06/appointments",
+        data={"client_id": sample_client.id, "time": "10:00",
+              "repeat": "biweekly", "occurrences": "3"},
+    )
+    appts = (
+        db.query(Appointment).filter_by(client_id=sample_client.id)
+        .order_by(Appointment.datetime).all()
+    )
+    assert len(appts) == 3
+    assert appts[1].datetime - appts[0].datetime == timedelta(days=14)
+
+
+def test_recurring_occurrences_capped(client, db, sample_client):
+    client.post(
+        "/calendar/day/2026-07-06/appointments",
+        data={"client_id": sample_client.id, "time": "10:00",
+              "repeat": "weekly", "occurrences": "999"},
+    )
+    assert db.query(Appointment).filter_by(client_id=sample_client.id).count() == 52
+
+
+def test_no_repeat_ignores_occurrences(client, db, sample_client):
+    client.post(
+        "/calendar/day/2026-07-06/appointments",
+        data={"client_id": sample_client.id, "time": "10:00",
+              "repeat": "none", "occurrences": "5"},
+    )
+    assert db.query(Appointment).filter_by(client_id=sample_client.id).count() == 1
+
+
 def test_edit_form_prefilled(client, sample_appointment):
     r = client.get(f"/appointments/{sample_appointment.id}/edit")
     assert r.status_code == 200
