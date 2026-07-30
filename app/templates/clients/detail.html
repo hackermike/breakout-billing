@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}{{ client.full_name }} — Breakout Billing{% endblock %}
+
+{% macro money(v) %}${{ '%.2f'|format(v or 0) }}{% endmacro %}
+
+{% block content %}
+<div class="p-6 max-w-5xl">
+  <a href="/clients" class="text-sm text-gray-500 dark:text-gray-400 hover:underline">&larr; Clients</a>
+
+  <!-- Header -->
+  <div class="flex items-start justify-between mt-2 mb-6">
+    <div>
+      <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100">{{ client.full_name }}</h2>
+      <div class="text-sm text-gray-500 dark:text-gray-400 mt-1 flex flex-wrap gap-x-4 gap-y-1">
+        {% if client.dob %}<span>DOB {{ client.dob.strftime('%m/%d/%Y') }}{% if age is not none %} · {{ age }} yrs{% endif %}</span>{% endif %}
+        {% if client.email %}<a href="mailto:{{ client.email }}" class="text-teal-600 dark:text-teal-400 hover:underline">{{ client.email }}</a>{% endif %}
+        {% if client.phone %}<a href="tel:{{ client.phone }}" class="hover:underline">{{ client.phone }}</a>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="grid grid-cols-4 gap-4 mb-6">
+    {% set stats = [
+      ('Sessions', completed_count, 'text-gray-800 dark:text-gray-100'),
+      ('Charged', money(charged), 'text-gray-800 dark:text-gray-100'),
+      ('Paid', money(paid), 'text-green-600 dark:text-green-400'),
+      ('Balance', money(outstanding), 'text-red-600 dark:text-red-400' if outstanding > 0.005 else 'text-green-600 dark:text-green-400'),
+    ] %}
+    {% for label, value, color in stats %}
+    <div class="p-4 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+      <div class="text-xs uppercase tracking-wide text-gray-400">{{ label }}</div>
+      <div class="text-xl font-semibold mt-1 {{ color }}">{{ value }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="grid grid-cols-3 gap-6">
+    <!-- Left: insurance + superbill -->
+    <div class="space-y-6">
+      <section class="p-4 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+        <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">Insurance & diagnosis</h3>
+        <dl class="text-sm space-y-2">
+          {% set rows = [
+            ('Carrier', client.insurance_company),
+            ('Member ID', client.insurance_id),
+            ('Group #', client.group_number),
+            ('Diagnosis (ICD-10)', client.diagnosis_codes),
+          ] %}
+          {% for label, value in rows %}
+          <div class="flex justify-between gap-3">
+            <dt class="text-gray-400">{{ label }}</dt>
+            <dd class="text-gray-700 dark:text-gray-200 text-right {{ 'font-mono' if 'Diagnosis' in label }}">{{ value or '—' }}</dd>
+          </div>
+          {% endfor %}
+        </dl>
+      </section>
+
+      <section class="p-4 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+        <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-1">Generate superbill</h3>
+        <p class="text-xs text-gray-400 mb-3">For insurance reimbursement over a date range.</p>
+        <form action="/superbills/generate" method="get" target="_blank" class="space-y-2">
+          <input type="hidden" name="client_id" value="{{ client.id }}" />
+          <div class="flex gap-2">
+            <label class="block flex-1">
+              <span class="text-xs text-gray-500 dark:text-gray-400">From</span>
+              <input type="date" name="start" value="{{ superbill_start }}" required
+                     class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5 bg-white dark:bg-slate-900 text-sm" />
+            </label>
+            <label class="block flex-1">
+              <span class="text-xs text-gray-500 dark:text-gray-400">To</span>
+              <input type="date" name="end" value="{{ superbill_end }}" required
+                     class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5 bg-white dark:bg-slate-900 text-sm" />
+            </label>
+          </div>
+          <button type="submit"
+                  class="w-full px-3 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors text-sm">
+            Generate PDF
+          </button>
+        </form>
+      </section>
+
+      {% if next_appt %}
+      <section class="p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+        <div class="text-xs uppercase tracking-wide text-blue-500 dark:text-blue-300">Next appointment</div>
+        <div class="mt-1 font-medium text-gray-800 dark:text-gray-100">
+          {{ next_appt.datetime.strftime('%a, %b %-d · %-I:%M %p') }}
+        </div>
+        <div class="text-xs text-gray-500 dark:text-gray-400">CPT {{ next_appt.cpt_code }} · {{ next_appt.duration_minutes }} min</div>
+      </section>
+      {% endif %}
+    </div>
+
+    <!-- Right: appointment history -->
+    <div class="col-span-2">
+      <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">Appointment history</h3>
+      <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 dark:bg-slate-900/50 text-gray-500 dark:text-gray-400">
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">Date</th>
+              <th class="text-left px-3 py-2 font-medium">CPT</th>
+              <th class="text-right px-3 py-2 font-medium">Fee</th>
+              <th class="text-right px-3 py-2 font-medium">Paid</th>
+              <th class="text-right px-3 py-2 font-medium">Balance</th>
+              <th class="text-left px-3 py-2 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+            {% for appt in appointments %}
+            {% set apaid = paid_by_appt.get(appt.id, 0) %}
+            {% set abalance = (appt.fee or 0) - apaid %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/40">
+              <td class="px-3 py-2 whitespace-nowrap">
+                <a href="/calendar?year={{ appt.datetime.year }}&month={{ appt.datetime.month }}"
+                   class="hover:underline">{{ appt.datetime.strftime('%m/%d/%Y') }}</a>
+                <span class="text-gray-400">{{ appt.datetime.strftime('%-I:%M %p') }}</span>
+                {% if appt.telehealth_url %}<span title="Telehealth">🎥</span>{% endif %}
+              </td>
+              <td class="px-3 py-2 font-mono text-xs">{{ appt.cpt_code }}</td>
+              <td class="px-3 py-2 text-right">{{ money(appt.fee) }}</td>
+              <td class="px-3 py-2 text-right">{{ money(apaid) }}</td>
+              <td class="px-3 py-2 text-right {{ 'text-red-600 dark:text-red-400 font-medium' if abalance > 0.005 and appt.status == 'completed' }}">
+                {{ money(abalance) if appt.status == 'completed' else '—' }}
+              </td>
+              <td class="px-3 py-2">
+                <span class="text-xs px-2 py-0.5 rounded-full border {{ status_colors[appt.status] }}">
+                  {{ appt.status.replace('_', ' ') }}
+                </span>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="px-3 py-8 text-center text-gray-400">No appointments yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

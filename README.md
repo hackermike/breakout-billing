@@ -14,7 +14,7 @@
 ## What it does
 
 - **Calendar** — month view of appointments, color-coded by status. Click a day to see details, book new appointments inline (they appear live, no page reload), and record payments.
-- **Clients** — add clients with demographics, insurance info, and ICD-10 diagnosis codes.
+- **Clients** — add clients with demographics, insurance info, and ICD-10 diagnosis codes; each client has a detail page with appointment history, running balance, and one-click superbill generation.
 - **Payments** — record payments against any appointment; balances and paid-in-full status update automatically.
 - **Edit & reschedule** — change any appointment, move it to another day (calendar chips update live), or delete it.
 - **Recurring appointments** — book a weekly or biweekly standing slot for up to 52 sessions in one go.
@@ -24,7 +24,7 @@
 - **Settings** — store your provider details (NPI, credentials, tax ID) once; they flow onto every superbill.
 - **Light & dark mode**, and everything runs on your own machine.
 
-Coming next: editing a recurring series as a group, a client detail page, and the insurance workflows in [CLARIFICATIONS.md](CLARIFICATIONS.md).
+Coming next: editing a recurring series as a group, and the insurance workflows in [CLARIFICATIONS.md](CLARIFICATIONS.md).
 
 <p align="center">
   <img src="docs/screenshot-dark.png" alt="Dark mode" width="49%" />
