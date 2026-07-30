@@ -4,14 +4,16 @@ from sqlalchemy.orm import Session
 
 from app.crud import get_or_create_provider
 from app.database import get_db
-from app.notifications import email_configured, email_from
+from app.notifications import email_configured, email_from, send_email
 from app.templates_config import templates
 
 router = APIRouter()
 
 
 @router.get("/settings")
-async def settings_page(request: Request, saved: bool = False, db: Session = Depends(get_db)):
+async def settings_page(
+    request: Request, saved: bool = False, tested: str = "", db: Session = Depends(get_db)
+):
     provider = get_or_create_provider(db)
     return templates.TemplateResponse(
         request,
@@ -20,10 +22,21 @@ async def settings_page(request: Request, saved: bool = False, db: Session = Dep
             "active_nav": "settings",
             "provider": provider,
             "saved": saved,
+            "tested": tested,
             "email_configured": email_configured(),
             "email_from": email_from(),
         },
     )
+
+
+@router.post("/settings/test-email")
+async def send_test_email(to: str = Form(...)):
+    ok = send_email(
+        to,
+        "Test email from Breakout Billing",
+        "This is a test — your email settings are working.",
+    )
+    return RedirectResponse(url=f"/settings?tested={'ok' if ok else 'fail'}", status_code=303)
 
 
 @router.post("/settings")

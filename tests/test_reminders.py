@@ -99,6 +99,23 @@ def test_opted_out_client_not_due(client, db):
     assert "rey@example.com" not in client.get("/reminders").text
 
 
+def test_send_test_email_ok(client, monkeypatch):
+    import app.routers.settings as st
+    monkeypatch.setattr(st, "send_email", lambda *a, **k: True)
+    r = client.post("/settings/test-email", data={"to": "me@example.com"},
+                    follow_redirects=False)
+    assert r.status_code == 303
+    assert "tested=ok" in r.headers["location"]
+
+
+def test_send_test_email_failure(client, monkeypatch):
+    import app.routers.settings as st
+    monkeypatch.setattr(st, "send_email", lambda *a, **k: False)
+    r = client.post("/settings/test-email", data={"to": "me@example.com"},
+                    follow_redirects=False)
+    assert "tested=fail" in r.headers["location"]
+
+
 def test_toggle_client_reminders(client, db):
     c = Client(first_name="No", last_name="Pref", email="no@example.com", reminder_channel="none")
     db.add(c)
