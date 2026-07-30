@@ -53,6 +53,18 @@ def test_book_appointment_missing_client_returns_422(client):
     assert r.status_code == 422
 
 
+def test_book_appointment_unknown_client_returns_400(client):
+    r = client.post("/calendar/day/2026-07-20/appointments",
+                    data={"client_id": 9999, "time": "10:00"})
+    assert r.status_code == 400
+
+
+def test_book_appointment_negative_fee_returns_400(client, sample_client):
+    r = client.post("/calendar/day/2026-07-20/appointments",
+                    data={"client_id": sample_client.id, "time": "10:00", "fee": "-5"})
+    assert r.status_code == 400
+
+
 def test_record_payment(client, db, sample_appointment):
     r = client.post(
         f"/appointments/{sample_appointment.id}/payments",
@@ -101,12 +113,21 @@ def test_update_appointment_bad_time_400(client, sample_appointment):
 
 
 def test_delete_appointment(client, db, sample_appointment):
+    from datetime import date
+
+    from app.models.appointment import Appointment
+    from app.models.payment import Payment
+
     aid = sample_appointment.id
+    db.add(Payment(appointment_id=aid, amount=50.0, payment_date=date(2026, 7, 15)))
+    db.commit()
+
     r = client.post(f"/appointments/{aid}/delete")
     assert r.status_code == 200
-    from app.models.appointment import Appointment
-    db.expire_all()  # drop this session's cached copy so we re-read from the DB
+    db.expire_all()  # drop this session's cached copies so we re-read from the DB
     assert db.get(Appointment, aid) is None
+    # The attached payment must be gone too (cascade), not orphaned.
+    assert db.query(Payment).filter_by(appointment_id=aid).count() == 0
 
 
 def test_delete_unknown_appointment_404(client):

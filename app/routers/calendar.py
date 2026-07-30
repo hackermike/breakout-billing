@@ -106,6 +106,7 @@ async def create_appointment(
         dt = datetime.strptime(f"{date_str} {time}", "%Y-%m-%d %H:%M")
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid date or time") from exc
+    _validate_client_and_fee(db, client_id, fee)
     db.add(
         Appointment(
             client_id=client_id,
@@ -131,6 +132,13 @@ def _get_appointment(db: Session, appointment_id: int) -> Appointment:
     if appt is None:
         raise HTTPException(status_code=404, detail="Appointment not found")
     return appt
+
+
+def _validate_client_and_fee(db: Session, client_id: int, fee: float | None) -> None:
+    if db.get(Client, client_id) is None:
+        raise HTTPException(status_code=400, detail="Unknown client")
+    if fee is not None and fee < 0:
+        raise HTTPException(status_code=400, detail="Fee cannot be negative")
 
 
 @router.get("/appointments/{appointment_id}/edit")
@@ -170,6 +178,7 @@ async def update_appointment(
         new_dt = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid date or time") from exc
+    _validate_client_and_fee(db, client_id, fee)
 
     appt.client_id = client_id
     appt.datetime = new_dt
