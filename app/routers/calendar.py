@@ -1,11 +1,12 @@
 import calendar as cal_module
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.models.appointment import Appointment
+from app.models.client import Client
 from app.templates_config import templates
 
 router = APIRouter()
@@ -16,6 +17,20 @@ STATUS_COLORS = {
     "cancelled": "bg-gray-100 text-gray-500 border-gray-200",
     "no_show": "bg-red-100 text-red-700 border-red-200",
 }
+
+
+def _day_appointments(db: Session, dt: datetime) -> list[Appointment]:
+    """All appointments on the calendar day of `dt`, earliest first."""
+    return (
+        db.query(Appointment)
+        .options(joinedload(Appointment.client))
+        .filter(
+            Appointment.datetime >= dt.replace(hour=0, minute=0, second=0),
+            Appointment.datetime <= dt.replace(hour=23, minute=59, second=59),
+        )
+        .order_by(Appointment.datetime)
+        .all()
+    )
 
 
 @router.get("/calendar")
@@ -74,23 +89,62 @@ async def calendar_view(
 @router.get("/calendar/day/{date_str}")
 async def day_detail(request: Request, date_str: str, db: Session = Depends(get_db)):
     dt = datetime.strptime(date_str, "%Y-%m-%d")
-    appointments = (
-        db.query(Appointment)
-        .options(joinedload(Appointment.client))
-        .filter(
-            Appointment.datetime >= dt.replace(hour=0, minute=0, second=0),
-            Appointment.datetime <= dt.replace(hour=23, minute=59, second=59),
-        )
-        .order_by(Appointment.datetime)
-        .all()
-    )
-
     return templates.TemplateResponse(
         "partials/day_detail.html",
         {
             "request": request,
             "date": dt.date(),
-            "appointments": appointments,
+            "date_str": date_str,
+            "appointments": _day_appointments(db, dt),
             "status_colors": STATUS_COLORS,
+        },
+    )
+
+
+@router.get("/calendar/day/{date_str}/new")
+async def new_appointment_form(request: Request, date_str: str, db: Session = Depends(get_db)):
+    clients = db.query(Client).order_by(Client.last_name).all()
+    return templates.TemplateResponse(
+        "partials/appointment_form.html",
+        {"request": request, "date_str": date_str, "clients": clients},
+    )
+
+
+@router.post("/calendar/day/{date_str}/appointments")
+async def create_appointment(
+    request: Request,
+    date_str: str,
+    client_id: int = Form(...),
+    time: str = Form(...),
+    duration_minutes: int = Form(50),
+    cpt_code: str = Form("90837"),
+    status: str = Form("scheduled"),
+    db: Session = Depends(get_db),
+):
+    try:
+        dt = datetime.strptime(f"{date_str} {time}", "%Y-%m-%d %H:%M")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid date or time") from exc
+    db.add(
+        Appointment(
+            client_id=client_id,
+            datetime=dt,
+            duration_minutes=duration_minutes,
+            cpt_code=cpt_code,
+            status=status,
+        )
+    )
+    db.commit()
+
+    # Re-render the day detail and, out-of-band, refresh that day's calendar chips.
+    return templates.TemplateResponse(
+        "partials/day_detail.html",
+        {
+            "request": request,
+            "date": dt.date(),
+            "date_str": date_str,
+            "appointments": _day_appointments(db, dt),
+            "status_colors": STATUS_COLORS,
+            "oob_chips": True,
         },
     )
