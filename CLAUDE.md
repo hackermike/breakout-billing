@@ -24,16 +24,34 @@ Core features:
 **Backend:** Python + FastAPI
 **Frontend:** HTMX + Jinja2 templates + Tailwind CSS (CDN, no build step)
 **Database:** SQLite via SQLAlchemy (single file; migrate to Postgres if multi-user)
-**PDF generation:** WeasyPrint or ReportLab (not yet implemented)
+**PDF generation:** fpdf2 (pure Python, no system deps) — see `app/superbill.py`
 
 ## Commands
 
 ```bash
-./start.sh                          # first run: sets up venv, seeds DB, opens browser
-source .venv/bin/activate
-uvicorn app.main:app --reload       # dev server after first run
-python seed.py                      # re-seed demo data (skips if data exists)
+./start.sh                              # first run: sets up venv, seeds DB, opens browser
+.venv/bin/uvicorn app.main:app --reload # dev server after first run
+.venv/bin/python seed.py                # re-seed demo data (skips if data exists)
+./scripts/reseed.sh                     # back up, drop, and re-seed the demo DB
+./scripts/backup.sh                     # timestamped DB backup -> backups/
+.venv/bin/pytest -q                     # run tests
+.venv/bin/ruff check .                  # lint
 ```
+
+**Never use `source .venv/bin/activate`.** Call the venv binaries directly as shown
+above. `source` evaluates arbitrary shell code, so Claude Code cannot allowlist it —
+every command chained after it triggers a permission prompt with no "don't ask again"
+option. Invoking `.venv/bin/<tool>` gets the same environment without the prompt.
+
+Also avoid wrapping background servers in a subshell — `(uvicorn ... &)` cannot be
+allowlisted either, since the leading paren breaks permission pattern matching. Run
+the command unwrapped and let the tool background it.
+
+Run project scripts by their path — `./scripts/backup.sh`, `./scripts/smoke.sh`. They
+are committed executable with shebangs, so do not prefix them with `bash`, and do not
+prepend `PATH=...` or other environment assignments. Each prefix becomes part of the
+command string the permission system matches against, so a wrapped or env-prefixed
+invocation misses the allowlist rule and prompts every time.
 
 ## Key Domain Concepts
 

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python *)",
+      "Bash(.venv/bin/python3 *)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/pytest *)",
+      "Bash(.venv/bin/ruff *)",
+      "Bash(.venv/bin/uvicorn *)",
+      "Bash(./scripts/backup.sh*)",
+      "Bash(./scripts/reseed.sh*)",
+      "Bash(./scripts/smoke.sh*)",
+      "Bash(pkill -f \"uvicorn app.main\"*)"
+    ]
+  }
+}

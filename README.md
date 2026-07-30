@@ -11,12 +11,23 @@
 
 ![Calendar view](docs/screenshot-calendar.png)
 
-## What it does (so far)
+## What it does
 
-- **Calendar** — month view of all appointments, color-coded by status. Click any day to see that day's details.
-- **Client list** — demographics, insurance info, and ICD-10 diagnosis codes.
+- **Calendar** — month view of appointments, color-coded by status. Click a day to see details, book new appointments inline (they appear live, no page reload), and record payments.
+- **Clients** — add clients with demographics, insurance info, and ICD-10 diagnosis codes.
+- **Payments** — record payments against any appointment; balances and paid-in-full status update automatically.
+- **Superbills** — generate a professional PDF a client submits to their insurer for out-of-network reimbursement, with your NPI, CPT/ICD-10 codes, fees, and payments.
+- **Settings** — store your provider details (NPI, credentials, tax ID) once; they flow onto every superbill.
+- **Light & dark mode**, and everything runs on your own machine.
 
-Coming soon: recording payments, generating superbills (PDF), bookkeeping reports, adding/editing appointments and clients.
+Coming next: bookkeeping/income reports, editing existing appointments, recurring appointments, telehealth links.
+
+<p align="center">
+  <img src="docs/screenshot-dark.png" alt="Dark mode" width="49%" />
+  <img src="docs/screenshot-about.png" alt="About page" width="49%" />
+</p>
+
+See [docs/USAGE.md](docs/USAGE.md) for a full walkthrough.
 
 ## Quick start (Mac)
 
@@ -48,15 +59,40 @@ cd breakout-billing
 ./start.sh
 ```
 
-The demo data is only created on the first run. Your real data will live in `breakout.db` in the project folder — back it up like any other file.
+The demo data is only created on the first run. Your real data lives in `breakout.db` in the project folder.
+
+## Backing up your data
+
+All your data is a single file, `breakout.db` — backing it up is just copying that file somewhere safe. A helper script does this safely (even while the app is running):
+
+```bash
+./scripts/backup.sh
+```
+
+This writes a timestamped copy to `backups/` and keeps the 30 most recent. See [docs/BACKUP.md](docs/BACKUP.md) for a recommended routine (encrypted external drive + periodic offsite copy) and how to restore.
 
 ## HIPAA
 
-Running locally means your data never leaves your computer. Make sure your Mac has FileVault disk encryption turned on (`System Settings → Privacy & Security → FileVault`). That satisfies the HIPAA encryption-at-rest requirement for a solo practice.
+Running locally means your data never leaves your computer. Turn on FileVault disk encryption (`System Settings → Privacy & Security → FileVault`) to satisfy the HIPAA encryption-at-rest requirement for a solo practice. Keep backups encrypted too — see [docs/BACKUP.md](docs/BACKUP.md).
+
+## For developers
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/python seed.py          # demo data
+.venv/bin/uvicorn app.main:app --reload
+
+.venv/bin/pytest -q               # unit + integration tests
+.venv/bin/ruff check .            # lint
+bash scripts/smoke.sh             # end-to-end smoke test
+```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the code is laid out and [CONTRIBUTING.md](CONTRIBUTING.md) to get started. Optional pre-commit hooks: `.venv/bin/pip install pre-commit && pre-commit install`.
 
 ## Contributing
 
-Pull requests welcome. This project is in early development — see open issues for what's needed next.
+Pull requests welcome. This project is in early development — see [CONTRIBUTING.md](CONTRIBUTING.md) and open issues for what's needed next.
 
 ## License
 

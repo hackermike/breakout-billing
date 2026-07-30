@@ -4,6 +4,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload
 
+from app.crud import STATUS_COLORS, day_detail_context
 from app.database import get_db
 from app.models.appointment import Appointment
 from app.models.client import Client
@@ -11,26 +12,8 @@ from app.templates_config import templates
 
 router = APIRouter()
 
-STATUS_COLORS = {
-    "scheduled": "bg-blue-100 text-blue-700 border-blue-200",
-    "completed": "bg-green-100 text-green-700 border-green-200",
-    "cancelled": "bg-gray-100 text-gray-500 border-gray-200",
-    "no_show": "bg-red-100 text-red-700 border-red-200",
-}
-
-
-def _day_appointments(db: Session, dt: datetime) -> list[Appointment]:
-    """All appointments on the calendar day of `dt`, earliest first."""
-    return (
-        db.query(Appointment)
-        .options(joinedload(Appointment.client))
-        .filter(
-            Appointment.datetime >= dt.replace(hour=0, minute=0, second=0),
-            Appointment.datetime <= dt.replace(hour=23, minute=59, second=59),
-        )
-        .order_by(Appointment.datetime)
-        .all()
-    )
+# Default session fee by CPT code, applied when booking.
+DEFAULT_FEES = {"90837": 150.0, "90834": 125.0, "90832": 100.0, "90847": 175.0, "90853": 80.0}
 
 
 @router.get("/calendar")
@@ -67,6 +50,7 @@ async def calendar_view(
     next_year = year if month < 12 else year + 1
 
     return templates.TemplateResponse(
+        request,
         "calendar.html",
         {
             "request": request,
@@ -90,14 +74,9 @@ async def calendar_view(
 async def day_detail(request: Request, date_str: str, db: Session = Depends(get_db)):
     dt = datetime.strptime(date_str, "%Y-%m-%d")
     return templates.TemplateResponse(
+        request,
         "partials/day_detail.html",
-        {
-            "request": request,
-            "date": dt.date(),
-            "date_str": date_str,
-            "appointments": _day_appointments(db, dt),
-            "status_colors": STATUS_COLORS,
-        },
+        day_detail_context(db, dt),
     )
 
 
@@ -105,8 +84,9 @@ async def day_detail(request: Request, date_str: str, db: Session = Depends(get_
 async def new_appointment_form(request: Request, date_str: str, db: Session = Depends(get_db)):
     clients = db.query(Client).order_by(Client.last_name).all()
     return templates.TemplateResponse(
+        request,
         "partials/appointment_form.html",
-        {"request": request, "date_str": date_str, "clients": clients},
+        {"date_str": date_str, "clients": clients},
     )
 
 
@@ -118,6 +98,7 @@ async def create_appointment(
     time: str = Form(...),
     duration_minutes: int = Form(50),
     cpt_code: str = Form("90837"),
+    fee: float = Form(None),
     status: str = Form("scheduled"),
     db: Session = Depends(get_db),
 ):
@@ -131,6 +112,7 @@ async def create_appointment(
             datetime=dt,
             duration_minutes=duration_minutes,
             cpt_code=cpt_code,
+            fee=fee if fee is not None else DEFAULT_FEES.get(cpt_code, 150.0),
             status=status,
         )
     )
@@ -138,13 +120,7 @@ async def create_appointment(
 
     # Re-render the day detail and, out-of-band, refresh that day's calendar chips.
     return templates.TemplateResponse(
+        request,
         "partials/day_detail.html",
-        {
-            "request": request,
-            "date": dt.date(),
-            "date_str": date_str,
-            "appointments": _day_appointments(db, dt),
-            "status_colors": STATUS_COLORS,
-            "oob_chips": True,
-        },
+        {**day_detail_context(db, dt), "oob_chips": True},
     )

@@ -1,11 +1,15 @@
 <div class="space-y-3">
-  <h3 class="font-semibold text-gray-700 pb-3 border-b border-gray-100">
+  <h3 class="font-semibold text-gray-700 dark:text-gray-200 pb-3 border-b border-gray-100 dark:border-slate-700">
     {{ date.strftime('%A, %B %-d') }}
   </h3>
 
   {% if appointments %}
-    <p class="text-xs text-gray-400">{{ appointments|length }} appointment{{ 's' if appointments|length != 1 }}</p>
+    <p class="text-xs text-gray-400 dark:text-gray-500">
+      {{ appointments|length }} appointment{{ 's' if appointments|length != 1 }}
+    </p>
     {% for appt in appointments %}
+    {% set paid = paid_by_appt.get(appt.id, 0) %}
+    {% set balance = (appt.fee or 0) - paid %}
     <div class="p-3 rounded-lg border {{ status_colors[appt.status] }}">
       <div class="font-medium">{{ appt.client.full_name }}</div>
       <div class="text-xs mt-0.5 opacity-75">
@@ -15,17 +19,43 @@
         <span class="text-xs font-mono opacity-60">CPT {{ appt.cpt_code }}</span>
         <span class="text-xs capitalize opacity-75">{{ appt.status.replace('_', ' ') }}</span>
       </div>
+
+      {% if appt.fee %}
+      <div class="mt-2 pt-2 border-t border-black/5 dark:border-white/10 text-xs flex items-center justify-between">
+        <span class="opacity-70">Fee ${{ '%.2f'|format(appt.fee) }} &middot; Paid ${{ '%.2f'|format(paid) }}</span>
+        {% if balance > 0.005 %}
+        <span class="font-semibold text-red-600 dark:text-red-300">${{ '%.2f'|format(balance) }} due</span>
+        {% else %}
+        <span class="font-semibold text-green-600 dark:text-green-300">Paid in full</span>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% for p in appt.payments %}
+      <div class="mt-1 text-xs opacity-60 flex justify-between">
+        <span>{{ p.payment_date.strftime('%-m/%-d') }} &middot; {{ p.payment_method }} ({{ p.payer }})</span>
+        <span>${{ '%.2f'|format(p.amount) }}</span>
+      </div>
+      {% endfor %}
+
+      <div id="pay-slot-{{ appt.id }}"></div>
+      <button hx-get="/appointments/{{ appt.id }}/payment-form"
+              hx-target="#pay-slot-{{ appt.id }}" hx-swap="innerHTML"
+              class="mt-2 text-xs px-2 py-1 rounded border border-current opacity-60 hover:opacity-100 transition-opacity">
+        + Record payment
+      </button>
     </div>
     {% endfor %}
   {% else %}
-    <p class="text-gray-400 text-center py-6">No appointments</p>
+    <p class="text-gray-400 dark:text-gray-500 text-center py-6">No appointments</p>
   {% endif %}
 
   <div id="appt-form-slot"></div>
 
   <button hx-get="/calendar/day/{{ date_str }}/new"
           hx-target="#appt-form-slot" hx-swap="innerHTML"
-          class="w-full px-3 py-2 border border-dashed border-gray-300 text-gray-500 rounded-md
+          class="w-full px-3 py-2 border border-dashed border-gray-300 dark:border-slate-600
+                 text-gray-500 dark:text-gray-400 rounded-md
                  hover:border-teal-400 hover:text-teal-600 transition-colors">
     + Add appointment
   </button>

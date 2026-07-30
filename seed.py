@@ -126,6 +126,8 @@ def main():
         clients.append(c)
     db.flush()
 
+    fee_for = {"90837": 150.0, "90834": 125.0, "90832": 100.0, "90847": 175.0, "90853": 80.0}
+
     appointments = []
     for day, hour, minute, cidx, status, cpt in APPT_DATA:
         appt = Appointment(
@@ -133,6 +135,7 @@ def main():
             datetime=datetime(2026, 7, day, hour, minute),
             duration_minutes=50 if cpt == "90837" else 45,
             cpt_code=cpt,
+            fee=fee_for.get(cpt, 150.0),
             status=status,
         )
         db.add(appt)
@@ -141,10 +144,9 @@ def main():
 
     for appt in appointments:
         if appt.status == "completed":
-            fee = 150.0 if appt.cpt_code == "90837" else 125.0
             db.add(Payment(
                 appointment_id=appt.id,
-                amount=fee,
+                amount=appt.fee,
                 payment_date=appt.datetime.date(),
                 payment_method="insurance",
                 payer="insurance",

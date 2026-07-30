@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -13,7 +13,9 @@ class Appointment(Base):
     duration_minutes = Column(Integer, default=50)
     appointment_type = Column(String, default="individual")
     cpt_code = Column(String, default="90837")
+    fee = Column(Float, default=0.0)
     status = Column(String, default="scheduled")
     notes = Column(String)
 
     client = relationship("Client", back_populates="appointments")
+    payments = relationship("Payment", back_populates="appointment", cascade="all, delete-orphan")

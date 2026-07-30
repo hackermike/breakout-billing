@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}New Client — Breakout Billing{% endblock %}
+
+{% block content %}
+<div class="p-6 max-w-2xl">
+  <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">New Client</h2>
+
+  <form method="post" action="/clients" class="space-y-4">
+    <div class="flex gap-3">
+      <label class="block flex-1">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">First name <span class="text-red-500">*</span></span>
+        <input type="text" name="first_name" required
+               class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
+      </label>
+      <label class="block flex-1">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Last name <span class="text-red-500">*</span></span>
+        <input type="text" name="last_name" required
+               class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
+      </label>
+    </div>
+
+    <div class="flex gap-3">
+      <label class="block flex-1">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Date of birth</span>
+        <input type="date" name="dob"
+               class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
+      </label>
+      <label class="block flex-1">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Phone</span>
+        <input type="text" name="phone"
+               class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
+      </label>
+    </div>
+
+    <label class="block">
+      <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Email</span>
+      <input type="email" name="email"
+             class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
+    </label>
+
+    <div class="flex gap-3">
+      <label class="block flex-1">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Insurance company</span>
+        <input type="text" name="insurance_company"
+               class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
+      </label>
+      <label class="block flex-1">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Member ID</span>
+        <input type="text" name="insurance_id"
+               class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
+      </label>
+    </div>
+
+    <div class="flex gap-3">
+      <label class="block flex-1">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Group number</span>
+        <input type="text" name="group_number"
+               class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
+      </label>
+      <label class="block flex-1">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Diagnosis codes (ICD-10)</span>
+        <input type="text" name="diagnosis_codes" placeholder="e.g. F41.1, F33.0"
+               class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
+      </label>
+    </div>
+
+    <div class="flex gap-2 pt-2">
+      <button type="submit"
+              class="px-5 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors">
+        Create client
+      </button>
+      <a href="/clients"
+         class="px-5 py-2 border border-gray-200 dark:border-slate-700 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+        Cancel
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

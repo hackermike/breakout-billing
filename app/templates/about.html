@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}About — Breakout Billing{% endblock %}
+
+{% block content %}
+<div class="p-8 max-w-2xl">
+  <img src="/static/images/logo-sunburst.png" alt="Breakout Billing"
+       class="w-72 mb-6" />
+
+  <p class="text-gray-600 dark:text-gray-300 text-base leading-relaxed">
+    Breakout Billing is open-source practice management for independent therapists.
+    Track appointments on a calendar, record payments, and generate insurance
+    superbills — all running on your own machine, so your clients' data stays with you.
+  </p>
+
+  <div class="mt-6 grid grid-cols-2 gap-4 text-sm">
+    <div class="p-4 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+      <div class="font-semibold text-gray-700 dark:text-gray-200">Own your data</div>
+      <div class="text-gray-500 dark:text-gray-400 mt-1">
+        Everything lives in a single local file. No cloud account required.
+      </div>
+    </div>
+    <div class="p-4 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+      <div class="font-semibold text-gray-700 dark:text-gray-200">No subscriptions</div>
+      <div class="text-gray-500 dark:text-gray-400 mt-1">
+        Free and open source under the AGPL-3.0 license.
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-8 text-sm text-gray-400 dark:text-gray-500 space-y-1">
+    <div>Version {{ version }}</div>
+    <div>
+      <a href="https://github.com/hackermike/breakout-billing"
+         class="text-teal-600 dark:text-teal-400 hover:underline">github.com/hackermike/breakout-billing</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

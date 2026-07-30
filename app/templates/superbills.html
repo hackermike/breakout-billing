@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Superbills — Breakout Billing{% endblock %}
+
+{% block content %}
+<div class="p-6 max-w-xl">
+  <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-1">Generate Superbill</h2>
+  <p class="text-gray-500 dark:text-gray-400 mb-6">
+    Produce a PDF statement a client can submit to their insurer for out-of-network reimbursement.
+    Includes completed and scheduled sessions in the selected period.
+  </p>
+
+  <form action="/superbills/generate" method="get" target="_blank"
+        class="space-y-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-5">
+    <label class="block">
+      <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Client</span>
+      <select name="client_id" required
+              class="mt-1 w-full border border-gray-200 dark:border-slate-600 rounded-md px-3 py-2
+                     bg-white dark:bg-slate-900">
+        {% for c in clients %}
+        <option value="{{ c.id }}">{{ c.full_name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <div class="flex gap-3">
+      <label class="block flex-1">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">From</span>
+        <input type="date" name="start" value="{{ default_start }}" required
+               class="mt-1 w-full border border-gray-200 dark:border-slate-600 rounded-md px-3 py-2
+                      bg-white dark:bg-slate-900" />
+      </label>
+      <label class="block flex-1">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">To</span>
+        <input type="date" name="end" value="{{ default_end }}" required
+               class="mt-1 w-full border border-gray-200 dark:border-slate-600 rounded-md px-3 py-2
+                      bg-white dark:bg-slate-900" />
+      </label>
+    </div>
+
+    <button type="submit"
+            class="px-5 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors">
+      Generate PDF
+    </button>
+  </form>
+
+  {% if not clients %}
+  <p class="text-gray-400 mt-4">Add a client first to generate a superbill.</p>
+  {% endif %}
+</div>
+{% endblock %}
