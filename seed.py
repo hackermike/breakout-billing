@@ -2,6 +2,7 @@
 from datetime import date, datetime
 
 import app.models  # noqa: F401 — registers models
+from app.cpt import BY_CODE, default_fee
 from app.database import SessionLocal
 from app.db_init import run_migrations
 from app.models.appointment import Appointment
@@ -132,16 +133,14 @@ def main():
         c.reminder_channel = "email"
         c.email_consent_at = datetime(2026, 7, 1, 9, 0)
 
-    fee_for = {"90837": 150.0, "90834": 125.0, "90832": 100.0, "90847": 175.0, "90853": 80.0}
-
     appointments = []
     for i, (day, hour, minute, cidx, status, cpt) in enumerate(APPT_DATA):
         appt = Appointment(
             client_id=clients[cidx].id,
             datetime=datetime(2026, 7, day, hour, minute),
-            duration_minutes=50 if cpt == "90837" else 45,
+            duration_minutes=BY_CODE[cpt].duration,
             cpt_code=cpt,
-            fee=fee_for.get(cpt, 150.0),
+            fee=default_fee(cpt),
             status=status,
             # Some sessions are telehealth; give them a demo video link.
             telehealth_url="https://meet.example.com/room/mindfulpath" if i % 4 == 0 else None,

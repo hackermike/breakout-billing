@@ -42,11 +42,9 @@
       <select name="cpt_code"
               class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
                      bg-white dark:bg-slate-900">
-        <option value="90837">90837 — 60 min psychotherapy</option>
-        <option value="90834">90834 — 45 min psychotherapy</option>
-        <option value="90832">90832 — 30 min psychotherapy</option>
-        <option value="90847">90847 — family therapy</option>
-        <option value="90853">90853 — group therapy</option>
+        {% for c in cpt_codes %}
+        <option value="{{ c.code }}">{{ c.label }}</option>
+        {% endfor %}
       </select>
     </label>
     <label class="block w-24">

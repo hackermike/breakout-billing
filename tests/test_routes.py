@@ -271,6 +271,17 @@ def test_edit_form_prefilled(client, sample_appointment):
     assert 'value="2026-07-15"' in r.text
 
 
+def test_edit_form_preserves_non_bookable_cpt(client, db, sample_client):
+    a = Appointment(client_id=sample_client.id, datetime=datetime(2026, 7, 15, 10, 0),
+                    cpt_code="90791", fee=200.0, status="completed")
+    db.add(a)
+    db.commit()
+    db.refresh(a)
+    r = client.get(f"/appointments/{a.id}/edit")
+    assert r.status_code == 200
+    assert 'value="90791" selected' in r.text  # current code kept + selected
+
+
 def test_update_appointment_reschedules(client, db, sample_appointment):
     r = client.post(
         f"/appointments/{sample_appointment.id}/edit",

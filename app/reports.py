@@ -1,8 +1,9 @@
 """Bookkeeping report aggregations.
 
 Revenue is recognized when a session is **completed** (its fee becomes charged).
-Cash is counted when a **payment** is received. Outstanding balance (accounts
-receivable) is charged minus collected, per client.
+"Collected" is all cash received (any payment). Outstanding balance (A/R) is
+completed-session charges minus payments on those sessions, per client — the same
+`app.finances.balance_on_services` used by the client detail page.
 
 The pure `_*` helpers work off an already-loaded list of appointments so a single
 dashboard render only queries the database once (see `dashboard`).
@@ -11,9 +12,8 @@ from collections import defaultdict
 
 from sqlalchemy.orm import Session, joinedload
 
+from app.finances import CHARGEABLE_STATUS, balance_on_services, total_collected
 from app.models.appointment import Appointment
-
-CHARGEABLE_STATUS = "completed"
 
 
 def _appointments(db: Session) -> list[Appointment]:
@@ -25,12 +25,11 @@ def _appointments(db: Session) -> list[Appointment]:
 
 
 def _summary(appts: list[Appointment]) -> dict:
-    charged = sum(a.fee or 0 for a in appts if a.status == CHARGEABLE_STATUS)
-    collected = sum(p.amount for a in appts for p in a.payments)
+    services = balance_on_services(appts)
     return {
-        "charged": charged,
-        "collected": collected,
-        "outstanding": round(charged - collected, 2),
+        "charged": services["charged"],
+        "collected": total_collected(appts),   # all cash received (cash-flow view)
+        "outstanding": services["outstanding"],  # A/R, completed-scoped (matches _outstanding)
     }
 
 
@@ -62,26 +61,23 @@ def _by_payer(appts: list[Appointment]) -> list[dict]:
 
 
 def _outstanding(appts: list[Appointment]) -> list[dict]:
-    charged = defaultdict(float)
-    paid = defaultdict(float)
-    names = {}
+    by_client: dict[int, list[Appointment]] = defaultdict(list)
+    names: dict[int, str] = {}
     for a in appts:
+        by_client[a.client_id].append(a)
         names[a.client_id] = a.client.full_name
-        if a.status == CHARGEABLE_STATUS:
-            charged[a.client_id] += a.fee or 0
-        for p in a.payments:
-            paid[a.client_id] += p.amount
 
-    rows = [
-        {
-            "client": name,
-            "charged": round(charged[cid], 2),
-            "paid": round(paid[cid], 2),
-            "balance": round(charged[cid] - paid[cid], 2),
-        }
-        for cid, name in names.items()
-        if charged[cid] - paid[cid] > 0.005
-    ]
+    rows = []
+    for cid, client_appts in by_client.items():
+        # Same completed-scoped balance the client detail page shows.
+        bal = balance_on_services(client_appts)
+        if bal["outstanding"] > 0.005:
+            rows.append({
+                "client": names[cid],
+                "charged": bal["charged"],
+                "paid": bal["paid"],
+                "balance": bal["outstanding"],
+            })
     return sorted(rows, key=lambda r: -r["balance"])
 
 
