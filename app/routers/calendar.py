@@ -104,6 +104,7 @@ async def create_appointment(
     cpt_code: str = Form("90837"),
     fee: float = Form(None),
     status: str = Form("scheduled"),
+    telehealth_url: str = Form(""),
     repeat: str = Form("none"),
     occurrences: int = Form(1),
     db: Session = Depends(get_db),
@@ -113,6 +114,7 @@ async def create_appointment(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid date or time") from exc
     _validate_client_and_fee(db, client_id, fee)
+    _validate_telehealth_url(telehealth_url)
 
     # A weekly/biweekly standing appointment books several dates at once.
     interval = REPEAT_INTERVALS.get(repeat)
@@ -128,6 +130,7 @@ async def create_appointment(
                 cpt_code=cpt_code,
                 fee=resolved_fee,
                 status=status,
+                telehealth_url=telehealth_url or None,
             )
         )
     db.commit()
@@ -156,6 +159,14 @@ def _validate_client_and_fee(db: Session, client_id: int, fee: float | None) -> 
         raise HTTPException(status_code=400, detail="Unknown client")
     if fee is not None and fee < 0:
         raise HTTPException(status_code=400, detail="Fee cannot be negative")
+
+
+def _validate_telehealth_url(url: str) -> None:
+    # Only http(s) links are rendered, so reject other schemes (e.g. javascript:).
+    if url and not url.startswith(("http://", "https://")):
+        raise HTTPException(
+            status_code=400, detail="Telehealth link must start with http:// or https://"
+        )
 
 
 @router.get("/appointments/{appointment_id}/edit")
@@ -187,6 +198,7 @@ async def update_appointment(
     cpt_code: str = Form("90837"),
     fee: float = Form(None),
     status: str = Form("scheduled"),
+    telehealth_url: str = Form(""),
     db: Session = Depends(get_db),
 ):
     appt = _get_appointment(db, appointment_id)
@@ -196,6 +208,7 @@ async def update_appointment(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid date or time") from exc
     _validate_client_and_fee(db, client_id, fee)
+    _validate_telehealth_url(telehealth_url)
 
     appt.client_id = client_id
     appt.datetime = new_dt
@@ -204,6 +217,7 @@ async def update_appointment(
     if fee is not None:
         appt.fee = fee
     appt.status = status
+    appt.telehealth_url = telehealth_url or None
     db.commit()
 
     # Show the (possibly new) day; refresh chips on the new day, and on the old

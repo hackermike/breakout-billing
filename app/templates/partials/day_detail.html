@@ -20,6 +20,14 @@
         <span class="text-xs capitalize opacity-75">{{ appt.status.replace('_', ' ') }}</span>
       </div>
 
+      {% if appt.telehealth_url %}
+      <a href="{{ appt.telehealth_url }}" target="_blank" rel="noopener noreferrer"
+         class="mt-2 inline-flex items-center gap-1 text-xs px-2 py-1 rounded
+                bg-teal-600 text-white hover:bg-teal-700 transition-colors">
+        🎥 Join video call
+      </a>
+      {% endif %}
+
       {% if appt.fee %}
       <div class="mt-2 pt-2 border-t border-black/5 dark:border-white/10 text-xs flex items-center justify-between">
         <span class="opacity-70">Fee ${{ '%.2f'|format(appt.fee) }} &middot; Paid ${{ '%.2f'|format(paid) }}</span>

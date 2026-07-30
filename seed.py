@@ -129,7 +129,7 @@ def main():
     fee_for = {"90837": 150.0, "90834": 125.0, "90832": 100.0, "90847": 175.0, "90853": 80.0}
 
     appointments = []
-    for day, hour, minute, cidx, status, cpt in APPT_DATA:
+    for i, (day, hour, minute, cidx, status, cpt) in enumerate(APPT_DATA):
         appt = Appointment(
             client_id=clients[cidx].id,
             datetime=datetime(2026, 7, day, hour, minute),
@@ -137,6 +137,8 @@ def main():
             cpt_code=cpt,
             fee=fee_for.get(cpt, 150.0),
             status=status,
+            # Some sessions are telehealth; give them a demo video link.
+            telehealth_url="https://meet.example.com/room/mindfulpath" if i % 4 == 0 else None,
         )
         db.add(appt)
         appointments.append(appt)
