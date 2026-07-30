@@ -57,6 +57,34 @@
       </section>
 
       <section class="p-4 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+        <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-1">Email reminders</h3>
+        {% if not client.email %}
+        <p class="text-xs text-gray-400">Add an email address to enable reminders.</p>
+        {% elif client.email_opted_out %}
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Client has unsubscribed. Re-enabling requires fresh consent.
+        </p>
+        {% elif client.email_reminders_on %}
+        <p class="text-sm text-green-600 dark:text-green-400 mb-2">On — reminders will be sent.</p>
+        <form action="/clients/{{ client.id }}/reminders" method="post">
+          <button type="submit"
+                  class="text-sm px-3 py-1.5 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700">
+            Turn off
+          </button>
+        </form>
+        {% else %}
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Off.</p>
+        <form action="/clients/{{ client.id }}/reminders" method="post">
+          <input type="hidden" name="enable" value="1" />
+          <button type="submit"
+                  class="text-sm px-3 py-1.5 bg-teal-600 text-white rounded-md hover:bg-teal-700">
+            Turn on
+          </button>
+        </form>
+        {% endif %}
+      </section>
+
+      <section class="p-4 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
         <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-1">Generate superbill</h3>
         <p class="text-xs text-gray-400 mb-3">For insurance reimbursement over a date range.</p>
         <form action="/superbills/generate" method="get" target="_blank" class="space-y-2">

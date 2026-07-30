@@ -127,6 +127,11 @@ def main():
         clients.append(c)
     db.flush()
 
+    # Opt a few clients into email reminders so the Reminders panel has data.
+    for c in clients[:4]:
+        c.reminder_channel = "email"
+        c.email_consent_at = datetime(2026, 7, 1, 9, 0)
+
     fee_for = {"90837": 150.0, "90834": 125.0, "90832": 100.0, "90847": 175.0, "90853": 80.0}
 
     appointments = []

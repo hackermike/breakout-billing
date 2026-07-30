@@ -18,7 +18,8 @@ def test_calendar_page_loads(client):
 
 
 def test_pages_load(client):
-    for path in ["/clients", "/clients/new", "/import", "/superbills", "/settings", "/about"]:
+    for path in ["/clients", "/clients/new", "/import", "/superbills", "/reminders",
+                 "/settings", "/about"]:
         assert client.get(path).status_code == 200, path
 
 

@@ -50,6 +50,7 @@ async def create_client(
     insurance_id: str = Form(""),
     group_number: str = Form(""),
     diagnosis_codes: str = Form(""),
+    email_reminders: str = Form(""),
     db: Session = Depends(get_db),
 ):
     parsed_dob = None
@@ -59,6 +60,7 @@ async def create_client(
         except ValueError:
             parsed_dob = None
 
+    opted_in = bool(email_reminders) and bool(email)
     client = Client(
         first_name=first_name,
         last_name=last_name,
@@ -69,10 +71,31 @@ async def create_client(
         insurance_id=insurance_id,
         group_number=group_number,
         diagnosis_codes=diagnosis_codes,
+        reminder_channel="email" if opted_in else "none",
+        email_consent_at=datetime.now() if opted_in else None,
     )
     db.add(client)
     db.commit()
     return RedirectResponse(url="/clients", status_code=303)
+
+
+@router.post("/clients/{client_id}/reminders")
+async def toggle_reminders(
+    client_id: int, enable: str = Form(""), db: Session = Depends(get_db)
+):
+    client = db.get(Client, client_id)
+    if client is None:
+        raise HTTPException(status_code=404, detail="Client not found")
+    # A client's own opt-out is permanent; this preference toggle never clears it.
+    # Re-subscribing an unsubscribed client would need a separate explicit flow.
+    if enable and not client.email_opted_out:
+        client.reminder_channel = "email"
+        if client.email_consent_at is None:
+            client.email_consent_at = datetime.now()
+    elif not enable:
+        client.reminder_channel = "none"
+    db.commit()
+    return RedirectResponse(url=f"/clients/{client_id}", status_code=303)
 
 
 @router.get("/clients/{client_id}")
