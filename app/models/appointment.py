@@ -16,6 +16,7 @@ class Appointment(Base):
     fee = Column(Float, default=0.0)
     status = Column(String, default="scheduled")
     telehealth_url = Column(String)
+    series_id = Column(String, index=True)  # shared by a recurring series; NULL if standalone
     notes = Column(String)
 
     client = relationship("Client", back_populates="appointments")

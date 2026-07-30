@@ -1,3 +1,6 @@
+from datetime import datetime
+from uuid import uuid4
+
 from app.models.appointment import Appointment
 from app.models.payment import Payment
 
@@ -159,6 +162,73 @@ def test_no_repeat_ignores_occurrences(client, db, sample_client):
               "repeat": "none", "occurrences": "5"},
     )
     assert db.query(Appointment).filter_by(client_id=sample_client.id).count() == 1
+
+
+def test_recurring_series_shares_series_id(client, db, sample_client):
+    client.post(
+        "/calendar/day/2026-07-06/appointments",
+        data={"client_id": sample_client.id, "time": "10:00",
+              "repeat": "weekly", "occurrences": "3"},
+    )
+    appts = db.query(Appointment).filter_by(client_id=sample_client.id).all()
+    series_ids = {a.series_id for a in appts}
+    assert len(series_ids) == 1 and None not in series_ids
+
+
+def _make_series(db, client_id, days=(6, 13, 20)):
+    sid = uuid4().hex
+    made = []
+    for d in days:
+        a = Appointment(client_id=client_id, datetime=datetime(2026, 7, d, 10, 0),
+                        fee=150.0, cpt_code="90837", status="scheduled", series_id=sid)
+        db.add(a)
+        made.append(a)
+    db.commit()
+    for a in made:
+        db.refresh(a)
+    return made
+
+
+def test_edit_series_future_applies_to_this_and_later(client, db, sample_client):
+    a1, a2, a3 = _make_series(db, sample_client.id)  # 7/6, 7/13, 7/20
+    client.post(
+        f"/appointments/{a2.id}/edit",
+        data={"client_id": sample_client.id, "date": "2026-07-13", "time": "15:00",
+              "cpt_code": "90834", "status": "scheduled", "scope": "future"},
+    )
+    for a in (a1, a2, a3):
+        db.refresh(a)
+    assert a1.datetime.strftime("%H:%M") == "10:00"  # earlier occurrence untouched
+    assert a2.datetime.strftime("%H:%M") == "15:00"
+    assert a3.datetime.strftime("%H:%M") == "15:00"
+    assert (a2.cpt_code, a3.cpt_code) == ("90834", "90834")
+    assert a1.cpt_code == "90837"
+    # dates preserved for later occurrences
+    assert a3.datetime.strftime("%Y-%m-%d") == "2026-07-20"
+
+
+def test_edit_series_this_only(client, db, sample_client):
+    a1, a2, a3 = _make_series(db, sample_client.id)
+    client.post(
+        f"/appointments/{a2.id}/edit",
+        data={"client_id": sample_client.id, "date": "2026-07-13", "time": "16:00",
+              "scope": "this"},
+    )
+    for a in (a1, a2, a3):
+        db.refresh(a)
+    assert a1.datetime.strftime("%H:%M") == "10:00"
+    assert a2.datetime.strftime("%H:%M") == "16:00"
+    assert a3.datetime.strftime("%H:%M") == "10:00"
+
+
+def test_delete_series_future(client, db, sample_client):
+    a1, a2, a3 = _make_series(db, sample_client.id)
+    id1, id2, id3 = a1.id, a2.id, a3.id
+    client.post(f"/appointments/{id2}/delete", data={"scope": "future"})
+    db.expunge_all()  # clear the identity map so we re-read from the DB
+    assert db.get(Appointment, id1) is not None  # earlier occurrence kept
+    assert db.get(Appointment, id2) is None
+    assert db.get(Appointment, id3) is None
 
 
 def test_book_with_telehealth_link(client, db, sample_client):

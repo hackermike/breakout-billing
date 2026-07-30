@@ -1,5 +1,6 @@
 import calendar as cal_module
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload
@@ -116,9 +117,11 @@ async def create_appointment(
     _validate_client_and_fee(db, client_id, fee)
     _validate_telehealth_url(telehealth_url)
 
-    # A weekly/biweekly standing appointment books several dates at once.
+    # A weekly/biweekly standing appointment books several dates at once, sharing
+    # one series_id so it can be edited or cancelled as a group later.
     interval = REPEAT_INTERVALS.get(repeat)
     count = max(1, min(occurrences, MAX_OCCURRENCES)) if interval else 1
+    series_id = uuid4().hex if interval and count > 1 else None
     resolved_fee = fee if fee is not None else DEFAULT_FEES.get(cpt_code, 150.0)
     occurrence_dts = [dt + timedelta(days=interval * k) if interval else dt for k in range(count)]
     for occurrence_dt in occurrence_dts:
@@ -131,6 +134,7 @@ async def create_appointment(
                 fee=resolved_fee,
                 status=status,
                 telehealth_url=telehealth_url or None,
+                series_id=series_id,
             )
         )
     db.commit()
@@ -169,6 +173,30 @@ def _validate_telehealth_url(url: str) -> None:
         )
 
 
+def _series_targets(db: Session, appt: Appointment, scope: str) -> list[Appointment]:
+    """Appointments a scoped edit/delete applies to: this one, or this plus every
+    later occurrence in the same recurring series."""
+    if scope == "future" and appt.series_id:
+        return (
+            db.query(Appointment)
+            .filter(
+                Appointment.series_id == appt.series_id,
+                Appointment.datetime >= appt.datetime,
+            )
+            .order_by(Appointment.datetime)
+            .all()
+        )
+    return [appt]
+
+
+def _oob_for_days(db: Session, day_strs: set[str], exclude: str) -> list[tuple]:
+    """Out-of-band chip refreshes for every affected day except the one being rendered."""
+    return [
+        (ds, day_appointments(db, datetime.strptime(ds, "%Y-%m-%d")))
+        for ds in sorted(day_strs - {exclude})
+    ]
+
+
 @router.get("/appointments/{appointment_id}/edit")
 async def edit_appointment_form(
     request: Request, appointment_id: int, db: Session = Depends(get_db)
@@ -199,10 +227,10 @@ async def update_appointment(
     fee: float = Form(None),
     status: str = Form("scheduled"),
     telehealth_url: str = Form(""),
+    scope: str = Form("this"),
     db: Session = Depends(get_db),
 ):
     appt = _get_appointment(db, appointment_id)
-    old_dt = appt.datetime
     try:
         new_dt = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
     except ValueError as exc:
@@ -210,38 +238,61 @@ async def update_appointment(
     _validate_client_and_fee(db, client_id, fee)
     _validate_telehealth_url(telehealth_url)
 
-    appt.client_id = client_id
-    appt.datetime = new_dt
-    appt.duration_minutes = duration_minutes
-    appt.cpt_code = cpt_code
-    if fee is not None:
-        appt.fee = fee
-    appt.status = status
-    appt.telehealth_url = telehealth_url or None
+    apply_future = scope == "future" and bool(appt.series_id)
+    targets = _series_targets(db, appt, scope)
+
+    # Every day touched, before and after, so all calendar chips refresh.
+    affected = {t.datetime.strftime("%Y-%m-%d") for t in targets}
+    for target in targets:
+        target.client_id = client_id
+        # "This and future" keeps each occurrence's own date and shifts the
+        # time-of-day; a single edit can reschedule the date outright.
+        target.datetime = (
+            datetime.combine(target.datetime.date(), new_dt.time()) if apply_future else new_dt
+        )
+        target.duration_minutes = duration_minutes
+        target.cpt_code = cpt_code
+        if fee is not None:
+            target.fee = fee
+        target.status = status
+        target.telehealth_url = telehealth_url or None
     db.commit()
 
-    # Show the (possibly new) day; refresh chips on the new day, and on the old
-    # day too if the appointment was rescheduled across days.
-    extra_oob = []
-    if old_dt.date() != new_dt.date():
-        extra_oob.append((old_dt.strftime("%Y-%m-%d"), day_appointments(db, old_dt)))
+    affected |= {t.datetime.strftime("%Y-%m-%d") for t in targets}
+    primary_day = appt.datetime.strftime("%Y-%m-%d")
     return templates.TemplateResponse(
         request,
         "partials/day_detail.html",
-        {**day_detail_context(db, new_dt), "oob_chips": True, "extra_oob": extra_oob},
+        {
+            **day_detail_context(db, appt.datetime),
+            "oob_chips": True,
+            "extra_oob": _oob_for_days(db, affected, primary_day),
+        },
     )
 
 
 @router.post("/appointments/{appointment_id}/delete")
 async def delete_appointment(
-    request: Request, appointment_id: int, db: Session = Depends(get_db)
+    request: Request,
+    appointment_id: int,
+    scope: str = Form("this"),
+    db: Session = Depends(get_db),
 ):
     appt = _get_appointment(db, appointment_id)
-    dt = appt.datetime
-    db.delete(appt)
+    primary_dt = appt.datetime
+    targets = _series_targets(db, appt, scope)
+    affected = {t.datetime.strftime("%Y-%m-%d") for t in targets}
+    for target in targets:
+        db.delete(target)
     db.commit()
+
+    primary_day = primary_dt.strftime("%Y-%m-%d")
     return templates.TemplateResponse(
         request,
         "partials/day_detail.html",
-        {**day_detail_context(db, dt), "oob_chips": True},
+        {
+            **day_detail_context(db, primary_dt),
+            "oob_chips": True,
+            "extra_oob": _oob_for_days(db, affected, primary_day),
+        },
     )
