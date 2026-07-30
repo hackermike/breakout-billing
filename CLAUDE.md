@@ -34,6 +34,10 @@ Core features:
 .venv/bin/python seed.py                # re-seed demo data (skips if data exists)
 ./scripts/reseed.sh                     # back up, drop, and re-seed the demo DB
 ./scripts/backup.sh                     # timestamped DB backup -> backups/
+./dev-scripts/lint-and-test.sh          # ruff + pytest, the local CI equivalent
+./dev-scripts/dev-server.sh             # restart dev server, wait until healthy
+./dev-scripts/open-pr.sh "Title" body.md    # PR with body from a file
+./dev-scripts/wait-for-review.sh 10      # poll PR #10 until CodeRabbit reviews
 .venv/bin/pytest -q                     # run tests
 .venv/bin/ruff check .                  # lint
 ```
@@ -46,6 +50,23 @@ option. Invoking `.venv/bin/<tool>` gets the same environment without the prompt
 Also avoid wrapping background servers in a subshell — `(uvicorn ... &)` cannot be
 allowlisted either, since the leading paren breaks permission pattern matching. Run
 the command unwrapped and let the tool background it.
+
+**General rule: complex shell belongs in a file, not on the command line.** If a Bash
+call needs a loop, `$(...)` substitution, a conditional, a heredoc, a `${VAR}` or
+`${PIPESTATUS[0]}` expansion, or a multi-line quoted string, put it in a script and run
+that. Reusable workflow goes in `dev-scripts/` (committed); one-off probes go in
+`scripts/dev/` (gitignored). Both directories are allowlisted, so a script runs clean.
+
+Claude Code refuses to statically analyze such commands and prompts every time with no
+"don't ask again" option, so no allowlist rule can fix them. Note the scripts in these
+directories use loops and expansions freely — the check applies to what the shell is
+handed, not to what a script contains. The specific cases below are all instances of
+this one rule.
+
+**Never pass a multi-line markdown body as a shell argument.** Write it to a file with
+the editor tool and use `gh pr create --body-file <path>` (same for `git commit -F`).
+A newline followed by `#` — any markdown heading — trips a path-validation check that
+cannot be allowlisted. Keep PR bodies in `scripts/dev/pr-body.md` (gitignored).
 
 **Never pipe code into a file with a bash heredoc** (`cat > f.mjs <<'EOF' ... EOF`).
 Write the file with the editor tool instead, then run it as its own plain command.

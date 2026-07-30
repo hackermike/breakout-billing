@@ -15,6 +15,7 @@ class Appointment(Base):
     cpt_code = Column(String, default="90837")
     fee = Column(Float, default=0.0)
     status = Column(String, default="scheduled")
+    telehealth_url = Column(String)
     notes = Column(String)
 
     client = relationship("Client", back_populates="appointments")
