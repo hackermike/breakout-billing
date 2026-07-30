@@ -90,8 +90,9 @@ clients and send them in one click.
 
 Until you configure email, reminders run in **preview mode**: nothing is
 delivered and the reminders stay **due**, so none are lost — once you configure
-email they'll send. To send for real, set `SMTP_HOST`, `SMTP_FROM`, and
-credentials as environment variables before starting the app (see **Settings**). For real client
+email they'll send. **[EMAIL-SETUP.md](EMAIL-SETUP.md)** walks through signing up
+for a provider and setting the `SMTP_*` variables; then use **Settings → Send
+test email** to confirm it works. For real client
 data use a provider that signs a BAA — details in
 [NOTIFICATIONS-PLAN.md](NOTIFICATIONS-PLAN.md).
 

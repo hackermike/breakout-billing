@@ -48,25 +48,48 @@
 
   <section class="mt-8">
     <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">Email (reminders)</h3>
+
+    {% if tested == 'ok' %}
+    <div class="mb-3 px-3 py-2 rounded-md bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 text-sm">
+      Test email sent successfully.
+    </div>
+    {% elif tested == 'fail' %}
+    <div class="mb-3 px-3 py-2 rounded-md bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 text-sm">
+      Test email failed — check your SMTP settings and that the from-address is verified.
+    </div>
+    {% endif %}
+
     {% if email_configured %}
-    <p class="text-sm text-green-700 dark:text-green-400">
+    <p class="text-sm text-green-700 dark:text-green-400 mb-3">
       Configured — sending as <span class="font-mono">{{ email_from }}</span>.
     </p>
+    <form action="/settings/test-email" method="post" class="flex items-end gap-2">
+      <label class="block">
+        <span class="text-xs text-gray-500 dark:text-gray-400">Send a test to</span>
+        <input type="email" name="to" value="{{ provider.email or '' }}" required
+               class="mt-0.5 border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800 text-sm" />
+      </label>
+      <button type="submit"
+              class="px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 text-sm">
+        Send test email
+      </button>
+    </form>
     {% else %}
     <p class="text-sm text-gray-500 dark:text-gray-400">
-      Not configured. Reminders run in preview mode (logged, not delivered). To send
-      real email, set these environment variables before starting the app:
+      Not configured. Reminders run in preview mode (nothing delivered; they stay due).
+      To send real email, set these environment variables before starting the app:
     </p>
     <ul class="mt-2 text-sm font-mono text-gray-600 dark:text-gray-300 space-y-0.5">
       <li>SMTP_HOST, SMTP_PORT (default 587)</li>
       <li>SMTP_USER, SMTP_PASSWORD</li>
       <li>SMTP_FROM (the from address)</li>
     </ul>
-    <p class="text-xs text-gray-400 mt-2">
-      For real client data, use a provider that will sign a BAA (e.g. Amazon SES) —
-      see <span class="font-mono">docs/NOTIFICATIONS-PLAN.md</span>.
-    </p>
     {% endif %}
+
+    <p class="text-xs text-gray-400 mt-3">
+      Step-by-step signup and configuration (including Amazon SES with a BAA for real
+      client data) is in <span class="font-mono">docs/EMAIL-SETUP.md</span>.
+    </p>
   </section>
 </div>
 {% endblock %}
