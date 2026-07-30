@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.crud import STATUS_COLORS
 from app.database import get_db
+from app.finances import appt_paid, balance_on_services
+from app.finances import completed as finances_completed
 from app.models.appointment import Appointment
 from app.models.client import Client
 from app.templates_config import templates
@@ -113,19 +115,16 @@ async def client_detail(request: Request, client_id: int, db: Session = Depends(
     )
 
     now = datetime.now()
-    # Balance reflects services rendered: charged and paid are both scoped to
-    # completed sessions, so a prepayment on a future session can't understate it.
-    completed = [a for a in appointments if a.status == "completed"]
-    charged = sum(a.fee or 0 for a in completed)
-    paid = sum(p.amount for a in completed for p in a.payments)
-    completed_count = len(completed)
+    # Balance reflects services rendered (completed-scoped) — see app.finances.
+    bal = balance_on_services(appointments)
+    completed_count = len(finances_completed(appointments))
     upcoming = sorted(
         (a for a in appointments if a.datetime >= now and a.status == "scheduled"),
         key=lambda a: a.datetime,
     )
 
     # Per-appointment paid, for the history table.
-    paid_by_appt = {a.id: sum(p.amount for p in a.payments) for a in appointments}
+    paid_by_appt = {a.id: appt_paid(a) for a in appointments}
 
     return templates.TemplateResponse(
         request,
@@ -136,9 +135,9 @@ async def client_detail(request: Request, client_id: int, db: Session = Depends(
             "age": _age(client.dob),
             "appointments": appointments,
             "paid_by_appt": paid_by_appt,
-            "charged": charged,
-            "paid": paid,
-            "outstanding": round(charged - paid, 2),
+            "charged": bal["charged"],
+            "paid": bal["paid"],
+            "outstanding": bal["outstanding"],
             "completed_count": completed_count,
             "next_appt": upcoming[0] if upcoming else None,
             "status_colors": STATUS_COLORS,

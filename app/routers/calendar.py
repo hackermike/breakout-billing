@@ -5,6 +5,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload
 
+from app import cpt
 from app.crud import STATUS_COLORS, day_appointments, day_detail_context
 from app.database import get_db
 from app.models.appointment import Appointment
@@ -12,9 +13,6 @@ from app.models.client import Client
 from app.templates_config import templates
 
 router = APIRouter()
-
-# Default session fee by CPT code, applied when booking.
-DEFAULT_FEES = {"90837": 150.0, "90834": 125.0, "90832": 100.0, "90847": 175.0, "90853": 80.0}
 
 # Recurrence interval (days) for a standing weekly/biweekly appointment.
 REPEAT_INTERVALS = {"weekly": 7, "biweekly": 14}
@@ -122,7 +120,7 @@ async def create_appointment(
     interval = REPEAT_INTERVALS.get(repeat)
     count = max(1, min(occurrences, MAX_OCCURRENCES)) if interval else 1
     series_id = uuid4().hex if interval and count > 1 else None
-    resolved_fee = fee if fee is not None else DEFAULT_FEES.get(cpt_code, 150.0)
+    resolved_fee = fee if fee is not None else cpt.default_fee(cpt_code)
     occurrence_dts = [dt + timedelta(days=interval * k) if interval else dt for k in range(count)]
     for occurrence_dt in occurrence_dts:
         db.add(

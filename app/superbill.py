@@ -8,18 +8,11 @@ from datetime import date
 
 from fpdf import FPDF
 
+from app import cpt
+from app.finances import appt_paid
 from app.models.appointment import Appointment
 from app.models.client import Client
 from app.models.provider import Provider
-
-CPT_DESCRIPTIONS = {
-    "90837": "Psychotherapy, 60 min",
-    "90834": "Psychotherapy, 45 min",
-    "90832": "Psychotherapy, 30 min",
-    "90847": "Family psychotherapy w/ patient",
-    "90853": "Group psychotherapy",
-    "90791": "Psychiatric diagnostic evaluation",
-}
 
 # Only these count as billable, reimbursable services on a superbill.
 BILLABLE_STATUSES = {"completed", "scheduled"}
@@ -92,13 +85,13 @@ def build_superbill_pdf(
     total_fee = 0.0
     total_paid = 0.0
     for appt in appointments:
-        paid = sum(p.amount for p in appt.payments)
+        paid = appt_paid(appt)
         fee = appt.fee or 0.0
         total_fee += fee
         total_paid += paid
         pdf.cell(24, 6, appt.datetime.strftime("%m/%d/%Y"), border=1)
         pdf.cell(16, 6, appt.cpt_code or "", border=1)
-        pdf.cell(82, 6, CPT_DESCRIPTIONS.get(appt.cpt_code, "Psychotherapy"), border=1)
+        pdf.cell(82, 6, cpt.description(appt.cpt_code), border=1)
         pdf.cell(28, 6, f"${fee:.2f}", border=1, align="R")
         pdf.cell(28, 6, f"${paid:.2f}", border=1, align="R")
         pdf.ln()

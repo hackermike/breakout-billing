@@ -15,32 +15,20 @@ autogenerates new migrations. Remaining follow-ups: run migrations from
 `start.sh` explicitly for first-run clarity, and (if a pre-Alembic `breakout.db`
 ever exists in the wild) add a one-time `alembic stamp` path for legacy databases.
 
-### 2. Consolidate financial calculations
-Charged / paid / balance logic is now computed in four places with subtly
-different rules:
-- `reports.py` (`_summary`) counts **all** payments as "collected".
-- `clients.py` (client detail) counts only **completed-session** payments (after
-  a review fix).
-- `crud.day_detail_context` computes `paid_by_appt` per appointment.
-- `superbill.py` totals fees and payments over a range.
+### 2. Consolidate financial calculations — ✅ done
+`app/finances.py` now holds the money math: `appt_paid`, `total_collected`
+(all cash), and `balance_on_services` (completed-scoped charged/paid/outstanding).
+`reports.py`, the client detail route, `crud.day_detail_context`, and `superbill.py`
+all call it. The two notions of "paid" are now explicit and documented: Reports
+"Collected" is cash received (any payment); A/R balance is completed-session
+charges minus payments on those sessions.
 
-Extract a single `finances` module operating on a list of appointments
-(`charged`, `collected`, `outstanding`, per-client, per-month) and call it from
-all four. Decide and document one definition of "collected" (cash received vs.
-balance on services rendered) — the reports vs. client-detail discrepancy should
-be intentional, not incidental.
-
-### 3. A single CPT catalog
-CPT data is duplicated across the code and templates:
-- `DEFAULT_FEES` in `calendar.py`
-- `fee_for` in `seed.py`
-- `CPT_DESCRIPTIONS` in `superbill.py`
-- hardcoded `<option>` lists in `appointment_form.html` and `appointment_edit_form.html`
-
-Create one `cpt.py` catalog mapping each code to its description, default fee,
-and default duration. Have the forms, seed, superbill, and booking logic read
-from it. This also resolves the CPT↔duration/fee decoupling noted in
-`CLARIFICATIONS.md` (choosing a CPT could auto-fill duration and fee).
+### 3. A single CPT catalog — ✅ done
+`app/cpt.py` is the one source: each code carries a label, superbill description,
+default fee, default duration, and a `bookable` flag. Booking (`calendar.py`),
+seeding (`seed.py`), the superbill, and the form dropdowns (via a Jinja global)
+all read from it. Remaining follow-up: auto-fill duration from the chosen CPT
+(the catalog already has it) — the CPT↔duration nicety in `CLARIFICATIONS.md`.
 
 ## Code structure / DRY
 

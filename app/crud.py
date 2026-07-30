@@ -3,6 +3,7 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session, joinedload
 
+from app.finances import appt_paid
 from app.models.appointment import Appointment
 from app.models.payment import Payment
 from app.models.provider import Provider
@@ -47,7 +48,7 @@ def day_appointments(db: Session, dt: datetime) -> list[Appointment]:
 def day_detail_context(db: Session, dt: datetime) -> dict:
     """Context for the day-detail partial: appointments plus paid totals."""
     appointments = day_appointments(db, dt)
-    paid_by_appt = {a.id: sum(p.amount for p in a.payments) for a in appointments}
+    paid_by_appt = {a.id: appt_paid(a) for a in appointments}
     return {
         "date": dt.date(),
         "date_str": dt.strftime("%Y-%m-%d"),
