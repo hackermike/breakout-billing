@@ -38,12 +38,20 @@
       </div>
       {% endfor %}
 
+      <div class="mt-2 flex gap-2">
+        <button hx-get="/appointments/{{ appt.id }}/payment-form"
+                hx-target="#pay-slot-{{ appt.id }}" hx-swap="innerHTML"
+                class="text-xs px-2 py-1 rounded border border-current opacity-60 hover:opacity-100 transition-opacity">
+          + Record payment
+        </button>
+        <button hx-get="/appointments/{{ appt.id }}/edit"
+                hx-target="#edit-slot-{{ appt.id }}" hx-swap="innerHTML"
+                class="text-xs px-2 py-1 rounded border border-current opacity-60 hover:opacity-100 transition-opacity">
+          Edit
+        </button>
+      </div>
       <div id="pay-slot-{{ appt.id }}"></div>
-      <button hx-get="/appointments/{{ appt.id }}/payment-form"
-              hx-target="#pay-slot-{{ appt.id }}" hx-swap="innerHTML"
-              class="mt-2 text-xs px-2 py-1 rounded border border-current opacity-60 hover:opacity-100 transition-opacity">
-        + Record payment
-      </button>
+      <div id="edit-slot-{{ appt.id }}"></div>
     </div>
     {% endfor %}
   {% else %}
@@ -65,3 +73,8 @@
 {% include "partials/day_chips.html" %}
 {% endwith %}
 {% endif %}
+{% for ds, appts in (extra_oob or []) %}
+{% with oob = True, date_str = ds, appointments = appts %}
+{% include "partials/day_chips.html" %}
+{% endwith %}
+{% endfor %}

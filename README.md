@@ -16,11 +16,13 @@
 - **Calendar** — month view of appointments, color-coded by status. Click a day to see details, book new appointments inline (they appear live, no page reload), and record payments.
 - **Clients** — add clients with demographics, insurance info, and ICD-10 diagnosis codes.
 - **Payments** — record payments against any appointment; balances and paid-in-full status update automatically.
+- **Edit & reschedule** — change any appointment, move it to another day (calendar chips update live), or delete it.
 - **Superbills** — generate a professional PDF a client submits to their insurer for out-of-network reimbursement, with your NPI, CPT/ICD-10 codes, fees, and payments.
+- **Reports** — income by month, income by payer, and outstanding balances (accounts receivable).
 - **Settings** — store your provider details (NPI, credentials, tax ID) once; they flow onto every superbill.
 - **Light & dark mode**, and everything runs on your own machine.
 
-Coming next: bookkeeping/income reports, editing existing appointments, recurring appointments, telehealth links.
+Coming next: recurring appointments, telehealth links.
 
 <p align="center">
   <img src="docs/screenshot-dark.png" alt="Dark mode" width="49%" />

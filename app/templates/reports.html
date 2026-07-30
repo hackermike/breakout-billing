@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Reports — Breakout Billing{% endblock %}
+
+{% macro money(v) %}${{ '%.2f'|format(v or 0) }}{% endmacro %}
+
+{% block content %}
+<div class="p-6 max-w-4xl">
+  <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-1">Reports</h2>
+  <p class="text-gray-500 dark:text-gray-400 mb-6">
+    Revenue is recognized when a session is marked <strong>completed</strong>; cash is
+    counted when a payment is recorded.
+  </p>
+
+  <!-- Summary cards -->
+  <div class="grid grid-cols-3 gap-4 mb-8">
+    {% set cards = [
+      ('Charged', summary.charged, 'text-gray-800 dark:text-gray-100'),
+      ('Collected', summary.collected, 'text-green-600 dark:text-green-400'),
+      ('Outstanding (A/R)', summary.outstanding, 'text-red-600 dark:text-red-400'),
+    ] %}
+    {% for label, value, color in cards %}
+    <div class="p-4 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+      <div class="text-xs uppercase tracking-wide text-gray-400">{{ label }}</div>
+      <div class="text-2xl font-semibold mt-1 {{ color }}">{{ money(value) }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="grid grid-cols-2 gap-6">
+    <!-- Income by month -->
+    <section>
+      <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">Income by month</h3>
+      <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 dark:bg-slate-900/50 text-gray-500 dark:text-gray-400">
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">Month</th>
+              <th class="text-right px-3 py-2 font-medium">Charged</th>
+              <th class="text-right px-3 py-2 font-medium">Collected</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+            {% for row in by_month %}
+            <tr>
+              <td class="px-3 py-2">{{ row.month }}</td>
+              <td class="px-3 py-2 text-right">{{ money(row.charged) }}</td>
+              <td class="px-3 py-2 text-right text-green-600 dark:text-green-400">{{ money(row.collected) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="px-3 py-6 text-center text-gray-400">No data yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="font-semibold text-gray-700 dark:text-gray-200 mt-6 mb-2">Income by payer</h3>
+      <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
+        <table class="w-full text-sm">
+          <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+            {% for row in by_payer %}
+            <tr>
+              <td class="px-3 py-2 capitalize">{{ row.payer }}</td>
+              <td class="px-3 py-2 text-right">{{ money(row.total) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="2" class="px-3 py-6 text-center text-gray-400">No payments yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Outstanding balances -->
+    <section>
+      <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">Outstanding balances</h3>
+      <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 dark:bg-slate-900/50 text-gray-500 dark:text-gray-400">
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">Client</th>
+              <th class="text-right px-3 py-2 font-medium">Charged</th>
+              <th class="text-right px-3 py-2 font-medium">Paid</th>
+              <th class="text-right px-3 py-2 font-medium">Balance</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+            {% for row in outstanding %}
+            <tr>
+              <td class="px-3 py-2">{{ row.client }}</td>
+              <td class="px-3 py-2 text-right">{{ money(row.charged) }}</td>
+              <td class="px-3 py-2 text-right">{{ money(row.paid) }}</td>
+              <td class="px-3 py-2 text-right font-semibold text-red-600 dark:text-red-400">{{ money(row.balance) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="px-3 py-6 text-center text-gray-400">Everyone's paid up 🎉</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
