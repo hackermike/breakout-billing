@@ -1,0 +1,4 @@
+Patient Name,DOB,Email Address,Cell Phone,Primary Insurance,Subscriber ID,Group #,ICD-10
+"Alvarez, Maria",1989-08-05,maria.alvarez@example.com,555-330-1020,Humana,HUM220145,GRP200,F41.0
+"Bennett, Carl",1972-12-11,carl.bennett@example.com,555-330-3040,Medicare,MCR909112,,F33.0
+"Choi, Hana",1995-04-22,hana.choi@example.com,555-330-5060,Aetna,AET771230,GRP201,F90.2

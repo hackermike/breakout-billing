@@ -9,6 +9,7 @@ from app.database import Base, engine
 from app.routers import (
     calendar,
     clients,
+    imports,
     pages,
     payments,
     reports,
@@ -27,6 +28,7 @@ app = FastAPI(title="Breakout Billing", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(calendar.router)
 app.include_router(clients.router)
+app.include_router(imports.router)
 app.include_router(payments.router)
 app.include_router(superbills.router)
 app.include_router(settings.router)
