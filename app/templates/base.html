@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Breakout Billing{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body class="bg-gray-50 h-screen flex overflow-hidden text-gray-800 text-sm">
+
+  <!-- Sidebar -->
+  <aside class="w-52 bg-slate-900 text-white flex flex-col shrink-0">
+    <div class="px-4 py-4 border-b border-slate-700">
+      <img src="/static/images/logo.png" alt="Breakout Billing" class="w-12 h-12 mx-auto" />
+    </div>
+    <nav class="p-2 flex-1 space-y-0.5">
+      <a href="/calendar"
+         class="block px-3 py-2 rounded-md transition-colors hover:bg-slate-800
+                {% if active_nav == 'calendar' %}bg-slate-700 text-white{% else %}text-slate-300{% endif %}">
+        Calendar
+      </a>
+      <a href="/clients"
+         class="block px-3 py-2 rounded-md transition-colors hover:bg-slate-800
+                {% if active_nav == 'clients' %}bg-slate-700 text-white{% else %}text-slate-300{% endif %}">
+        Clients
+      </a>
+      <span class="block px-3 py-2 text-slate-600 cursor-not-allowed">Payments</span>
+      <span class="block px-3 py-2 text-slate-600 cursor-not-allowed">Superbills</span>
+      <span class="block px-3 py-2 text-slate-600 cursor-not-allowed">Reports</span>
+    </nav>
+    <div class="p-4 border-t border-slate-700 text-xs text-slate-500">Demo mode</div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 overflow-auto">
+    {% block content %}{% endblock %}
+  </main>
+
+</body>
+</html>

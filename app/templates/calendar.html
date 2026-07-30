@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Calendar — Breakout Billing{% endblock %}
+
+{% block content %}
+<div class="flex h-full">
+
+  <!-- Calendar panel -->
+  <div class="flex-1 p-6 overflow-auto">
+    <!-- Month navigation -->
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-xl font-semibold text-gray-800">{{ month_name }} {{ year }}</h2>
+      <div class="flex gap-2">
+        <a href="/calendar?year={{ prev_year }}&month={{ prev_month }}"
+           class="px-3 py-1.5 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors">
+          &larr;
+        </a>
+        <a href="/calendar"
+           class="px-3 py-1.5 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors">
+          Today
+        </a>
+        <a href="/calendar?year={{ next_year }}&month={{ next_month }}"
+           class="px-3 py-1.5 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors">
+          &rarr;
+        </a>
+      </div>
+    </div>
+
+    <!-- Day-of-week headers -->
+    <div class="grid grid-cols-7 mb-px">
+      {% for name in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] %}
+      <div class="text-xs font-medium text-gray-400 text-center py-2 uppercase tracking-wide">{{ name }}</div>
+      {% endfor %}
+    </div>
+
+    <!-- Calendar grid -->
+    <div class="grid grid-cols-7 border-l border-t border-gray-200 rounded-sm overflow-hidden shadow-sm">
+      {% for week in weeks %}
+        {% for day in week %}
+          {% set is_today = (day == today.day and month == today.month and year == today.year) %}
+          {% if day == 0 %}
+          <div class="min-h-28 border-r border-b border-gray-200 bg-gray-50/60 p-1.5"></div>
+          {% else %}
+          <div
+            class="min-h-28 border-r border-b border-gray-200 bg-white hover:bg-slate-50/70 cursor-pointer p-1.5 transition-colors"
+            hx-get="/calendar/day/{{ year }}-{{ month|zeropad }}-{{ day|zeropad }}"
+            hx-target="#day-detail"
+            hx-swap="innerHTML"
+          >
+            <div class="flex justify-end mb-1">
+              {% if is_today %}
+              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-teal-600 text-white text-xs font-semibold">{{ day }}</span>
+              {% else %}
+              <span class="text-xs text-gray-500 w-6 h-6 flex items-center justify-center">{{ day }}</span>
+              {% endif %}
+            </div>
+            {% set day_appts = appts_by_day.get(day, []) %}
+            <div class="space-y-0.5">
+              {% for appt in day_appts[:3] %}
+              <div class="text-xs px-1.5 py-0.5 rounded border truncate {{ status_colors[appt.status] }}">
+                {{ appt.datetime.strftime('%I:%M').lstrip('0') }} {{ appt.client.last_name }}
+              </div>
+              {% endfor %}
+              {% if day_appts|length > 3 %}
+              <div class="text-xs text-gray-400 px-1">+{{ day_appts|length - 3 }} more</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+
+    <!-- Legend -->
+    <div class="flex gap-4 mt-4 text-xs text-gray-500">
+      {% for status, classes in status_colors.items() %}
+      <span class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-sm border {{ classes }}"></span>
+        {{ status.replace('_', ' ').title() }}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Day detail sidebar -->
+  <div class="w-72 border-l border-gray-200 bg-white overflow-y-auto shrink-0">
+    <div id="day-detail" class="p-5">
+      <p class="text-gray-400 text-center mt-10">Click a day to view appointments</p>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

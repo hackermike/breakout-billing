@@ -1,0 +1,23 @@
+<div class="space-y-3">
+  <h3 class="font-semibold text-gray-700 pb-3 border-b border-gray-100">
+    {{ date.strftime('%A, %B %-d') }}
+  </h3>
+
+  {% if appointments %}
+    <p class="text-xs text-gray-400">{{ appointments|length }} appointment{{ 's' if appointments|length != 1 }}</p>
+    {% for appt in appointments %}
+    <div class="p-3 rounded-lg border {{ status_colors[appt.status] }}">
+      <div class="font-medium">{{ appt.client.full_name }}</div>
+      <div class="text-xs mt-0.5 opacity-75">
+        {{ appt.datetime.strftime('%-I:%M %p') }} &middot; {{ appt.duration_minutes }} min
+      </div>
+      <div class="flex items-center justify-between mt-2">
+        <span class="text-xs font-mono opacity-60">CPT {{ appt.cpt_code }}</span>
+        <span class="text-xs capitalize opacity-75">{{ appt.status.replace('_', ' ') }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p class="text-gray-400 text-center py-8">No appointments</p>
+  {% endif %}
+</div>
