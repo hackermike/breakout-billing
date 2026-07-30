@@ -57,18 +57,21 @@
     <div class="mb-3 px-3 py-2 rounded-md bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 text-sm">
       Test email failed — check your SMTP settings and that the from-address is verified.
     </div>
+    {% elif tested == 'noaddr' %}
+    <div class="mb-3 px-3 py-2 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-sm">
+      Set the provider <strong>Email</strong> above first — the test is sent there.
+    </div>
     {% endif %}
 
     {% if email_configured %}
     <p class="text-sm text-green-700 dark:text-green-400 mb-3">
       Configured — sending as <span class="font-mono">{{ email_from }}</span>.
     </p>
-    <form action="/settings/test-email" method="post" class="flex items-end gap-2">
-      <label class="block">
-        <span class="text-xs text-gray-500 dark:text-gray-400">Send a test to</span>
-        <input type="email" name="to" value="{{ provider.email or '' }}" required
-               class="mt-0.5 border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800 text-sm" />
-      </label>
+    <form action="/settings/test-email" method="post">
+      <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+        Sends a test to your provider email
+        (<span class="font-mono">{{ provider.email or 'not set' }}</span>).
+      </p>
       <button type="submit"
               class="px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 text-sm">
         Send test email

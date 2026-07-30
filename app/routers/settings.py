@@ -30,9 +30,14 @@ async def settings_page(
 
 
 @router.post("/settings/test-email")
-async def send_test_email(to: str = Form(...)):
+async def send_test_email(db: Session = Depends(get_db)):
+    # Always send to the practice's own configured address — never an arbitrary
+    # recipient — so this unauthenticated endpoint can't be used as a mail relay.
+    provider = get_or_create_provider(db)
+    if not provider.email:
+        return RedirectResponse(url="/settings?tested=noaddr", status_code=303)
     ok = send_email(
-        to,
+        provider.email,
         "Test email from Breakout Billing",
         "This is a test — your email settings are working.",
     )
