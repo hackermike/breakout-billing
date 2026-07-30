@@ -11,7 +11,9 @@
       "Bash(./scripts/reseed.sh*)",
       "Bash(./scripts/smoke.sh*)",
       "Bash(pkill -f \"uvicorn app.main\"*)",
-      "Bash(node scripts/dev/*)"
+      "Bash(node scripts/dev/*)",
+      "Bash(./scripts/dev/*)",
+      "Bash(./dev-scripts/*)"
     ]
   }
 }
