@@ -10,7 +10,8 @@
       "Bash(./scripts/backup.sh*)",
       "Bash(./scripts/reseed.sh*)",
       "Bash(./scripts/smoke.sh*)",
-      "Bash(pkill -f \"uvicorn app.main\"*)"
+      "Bash(pkill -f \"uvicorn app.main\"*)",
+      "Bash(node scripts/dev/*)"
     ]
   }
 }

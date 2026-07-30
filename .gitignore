@@ -16,3 +16,6 @@ build/
 
 # Database backups (may contain patient data)
 backups/
+
+# Throwaway browser-driver / debug scripts (write with editor tools, run with node)
+scripts/dev/

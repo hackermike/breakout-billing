@@ -142,15 +142,21 @@ def main():
         appointments.append(appt)
     db.flush()
 
-    for appt in appointments:
-        if appt.status == "completed":
-            db.add(Payment(
-                appointment_id=appt.id,
-                amount=appt.fee,
-                payment_date=appt.datetime.date(),
-                payment_method="insurance",
-                payer="insurance",
-            ))
+    # Pay most completed sessions, but leave a few unpaid or partially paid and
+    # mix payers, so bookkeeping reports show realistic A/R and payer splits.
+    completed = [a for a in appointments if a.status == "completed"]
+    for i, appt in enumerate(completed):
+        if i % 9 == 4:
+            continue  # unpaid -> shows as outstanding balance
+        ratio = 0.5 if i % 9 == 7 else 1.0  # some partial payments
+        payer = "client" if i % 3 == 0 else "insurance"
+        db.add(Payment(
+            appointment_id=appt.id,
+            amount=round(appt.fee * ratio, 2),
+            payment_date=appt.datetime.date(),
+            payment_method="card" if payer == "client" else "insurance",
+            payer=payer,
+        ))
 
     db.commit()
     print(f"Seeded {len(clients)} clients and {len(appointments)} appointments.")

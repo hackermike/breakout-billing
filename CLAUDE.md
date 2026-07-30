@@ -47,6 +47,13 @@ Also avoid wrapping background servers in a subshell — `(uvicorn ... &)` canno
 allowlisted either, since the leading paren breaks permission pattern matching. Run
 the command unwrapped and let the tool background it.
 
+**Never pipe code into a file with a bash heredoc** (`cat > f.mjs <<'EOF' ... EOF`).
+Write the file with the editor tool instead, then run it as its own plain command.
+Inline code containing a brace with a quote inside it — `{ path: '/tmp/x.png' }`, common
+in Playwright scripts — trips the shell obfuscation check, which cannot be allowlisted
+and prompts every single time. Put throwaway browser-driver and debug scripts in
+`scripts/dev/` (gitignored) and run them with `node scripts/dev/<name>.mjs`.
+
 Run project scripts by their path — `./scripts/backup.sh`, `./scripts/smoke.sh`. They
 are committed executable with shebangs, so do not prefix them with `bash`, and do not
 prepend `PATH=...` or other environment assignments. Each prefix becomes part of the

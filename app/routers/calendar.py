@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload
 
-from app.crud import STATUS_COLORS, day_detail_context
+from app.crud import STATUS_COLORS, day_appointments, day_detail_context
 from app.database import get_db
 from app.models.appointment import Appointment
 from app.models.client import Client
@@ -119,6 +119,87 @@ async def create_appointment(
     db.commit()
 
     # Re-render the day detail and, out-of-band, refresh that day's calendar chips.
+    return templates.TemplateResponse(
+        request,
+        "partials/day_detail.html",
+        {**day_detail_context(db, dt), "oob_chips": True},
+    )
+
+
+def _get_appointment(db: Session, appointment_id: int) -> Appointment:
+    appt = db.get(Appointment, appointment_id)
+    if appt is None:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    return appt
+
+
+@router.get("/appointments/{appointment_id}/edit")
+async def edit_appointment_form(
+    request: Request, appointment_id: int, db: Session = Depends(get_db)
+):
+    appt = _get_appointment(db, appointment_id)
+    clients = db.query(Client).order_by(Client.last_name).all()
+    return templates.TemplateResponse(
+        request,
+        "partials/appointment_edit_form.html",
+        {
+            "appointment": appt,
+            "clients": clients,
+            "date_val": appt.datetime.strftime("%Y-%m-%d"),
+            "time_val": appt.datetime.strftime("%H:%M"),
+        },
+    )
+
+
+@router.post("/appointments/{appointment_id}/edit")
+async def update_appointment(
+    request: Request,
+    appointment_id: int,
+    client_id: int = Form(...),
+    date: str = Form(...),
+    time: str = Form(...),
+    duration_minutes: int = Form(50),
+    cpt_code: str = Form("90837"),
+    fee: float = Form(None),
+    status: str = Form("scheduled"),
+    db: Session = Depends(get_db),
+):
+    appt = _get_appointment(db, appointment_id)
+    old_dt = appt.datetime
+    try:
+        new_dt = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid date or time") from exc
+
+    appt.client_id = client_id
+    appt.datetime = new_dt
+    appt.duration_minutes = duration_minutes
+    appt.cpt_code = cpt_code
+    if fee is not None:
+        appt.fee = fee
+    appt.status = status
+    db.commit()
+
+    # Show the (possibly new) day; refresh chips on the new day, and on the old
+    # day too if the appointment was rescheduled across days.
+    extra_oob = []
+    if old_dt.date() != new_dt.date():
+        extra_oob.append((old_dt.strftime("%Y-%m-%d"), day_appointments(db, old_dt)))
+    return templates.TemplateResponse(
+        request,
+        "partials/day_detail.html",
+        {**day_detail_context(db, new_dt), "oob_chips": True, "extra_oob": extra_oob},
+    )
+
+
+@router.post("/appointments/{appointment_id}/delete")
+async def delete_appointment(
+    request: Request, appointment_id: int, db: Session = Depends(get_db)
+):
+    appt = _get_appointment(db, appointment_id)
+    dt = appt.datetime
+    db.delete(appt)
+    db.commit()
     return templates.TemplateResponse(
         request,
         "partials/day_detail.html",

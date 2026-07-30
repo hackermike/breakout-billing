@@ -69,6 +69,50 @@ def test_record_payment_unknown_appointment_404(client):
     assert r.status_code == 404
 
 
+def test_edit_form_prefilled(client, sample_appointment):
+    r = client.get(f"/appointments/{sample_appointment.id}/edit")
+    assert r.status_code == 200
+    assert 'name="date"' in r.text
+    assert 'value="2026-07-15"' in r.text
+
+
+def test_update_appointment_reschedules(client, db, sample_appointment):
+    r = client.post(
+        f"/appointments/{sample_appointment.id}/edit",
+        data={"client_id": sample_appointment.client_id, "date": "2026-07-20",
+              "time": "16:30", "cpt_code": "90834", "status": "completed"},
+    )
+    assert r.status_code == 200
+    db.refresh(sample_appointment)
+    assert sample_appointment.datetime.strftime("%Y-%m-%d %H:%M") == "2026-07-20 16:30"
+    assert sample_appointment.cpt_code == "90834"
+    # The old day's chips are refreshed out-of-band on a cross-day move.
+    assert 'id="chips-2026-07-15"' in r.text
+    assert 'id="chips-2026-07-20"' in r.text
+
+
+def test_update_appointment_bad_time_400(client, sample_appointment):
+    r = client.post(
+        f"/appointments/{sample_appointment.id}/edit",
+        data={"client_id": sample_appointment.client_id, "date": "2026-07-20",
+              "time": "nope"},
+    )
+    assert r.status_code == 400
+
+
+def test_delete_appointment(client, db, sample_appointment):
+    aid = sample_appointment.id
+    r = client.post(f"/appointments/{aid}/delete")
+    assert r.status_code == 200
+    from app.models.appointment import Appointment
+    db.expire_all()  # drop this session's cached copy so we re-read from the DB
+    assert db.get(Appointment, aid) is None
+
+
+def test_delete_unknown_appointment_404(client):
+    assert client.post("/appointments/9999/delete").status_code == 404
+
+
 def test_settings_save(client, db):
     r = client.post("/settings", data={"name": "Dr. X", "npi": "9998887776"},
                     follow_redirects=False)
