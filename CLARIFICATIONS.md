@@ -1,28 +1,32 @@
 # Open questions & subjective decisions
 
 These are choices made while building the proof-of-concept that are genuinely a
-product/owner call, not a technical one. Each has a note on what's assumed today
-and a recommendation. Nothing here blocks the current PoC; they shape where it
-goes next.
+product/owner call, not a technical one.
 
-## Scope & vision
+## Decided scope (2026-07-30)
 
-1. **Solo tool or multi-therapist platform?**
-   Today it's single-user, single-provider, no login. The "not-for-profit
-   BetterHelp alternative" vision implies eventually multiple therapists (and
-   therefore authentication, per-user data isolation, and a hosting model).
-   _Recommendation:_ keep the PoC solo/local; treat multi-tenant as a distinct
-   v2 with auth added deliberately. **Which are we building toward first?**
+There are **two different products**, and this repository is the first one:
 
-2. **Billing-only, or a fuller EHR?**
-   Currently: appointments, payments, superbills. A full EHR also has clinical
-   **progress notes** and legally-distinct **psychotherapy notes**. Is clinical
-   documentation in scope, or is this deliberately billing/scheduling only?
+- **This product — a pared-down SimplePractice.** Appointment tracking, payment
+  tracking, and superbill generation for a solo private-practice therapist who
+  **does not process insurance claims**. One person can run it themselves. This
+  is what Breakout Billing is, and it's largely built.
+- **Not this product — a non-profit BetterHelp.** Insurance billing, video
+  visits, a client-facing interface, and scaling to thousands of therapists.
+  That's a much larger undertaking that needs an organization and staff, not just
+  software. It's out of scope here; if pursued it's a separate effort that could
+  reuse pieces of this one.
 
-3. **Hosting model for the mission.** Self-hosted by each therapist (max data
-   ownership, what we have now) vs. a central hosted service (easier for
-   non-technical therapists, but needs a BAA, auth, and ops)? This drives a lot
-   of the roadmap.
+This resolves the questions below:
+
+1. **Solo tool or multi-therapist platform?** → **Solo/local tool.** Multi-tenant
+   is the separate BetterHelp effort, not a v2 of this.
+2. **Billing-only, or a fuller EHR?** → **Billing/scheduling only.** Clinical
+   progress/psychotherapy notes are out of scope.
+3. **Hosting model?** → **Self-hosted / local**, owned by the therapist.
+
+Everything below is either resolved by the above (insurance items 4–7 → **no**,
+superbills only) or is a smaller in-scope decision that still stands.
 
 ## Insurance — how far to go?
 
