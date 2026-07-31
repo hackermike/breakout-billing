@@ -1,20 +1,21 @@
 {% extends "base.html" %}
-{% block title %}New Client — Breakout Billing{% endblock %}
+{% set c = client if client is defined else None %}
+{% block title %}{{ 'Edit' if c else 'New' }} Client — Breakout Billing{% endblock %}
 
 {% block content %}
 <div class="p-6 max-w-2xl">
-  <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">New Client</h2>
+  <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">{{ 'Edit Client' if c else 'New Client' }}</h2>
 
-  <form method="post" action="/clients" class="space-y-4">
+  <form method="post" action="{{ '/clients/' ~ c.id ~ '/edit' if c else '/clients' }}" class="space-y-4">
     <div class="flex gap-3">
       <label class="block flex-1">
         <span class="text-sm font-medium text-gray-600 dark:text-gray-300">First name <span class="text-red-500">*</span></span>
-        <input type="text" name="first_name" required
+        <input type="text" name="first_name" required value="{{ c.first_name if c else '' }}"
                class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
       </label>
       <label class="block flex-1">
         <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Last name <span class="text-red-500">*</span></span>
-        <input type="text" name="last_name" required
+        <input type="text" name="last_name" required value="{{ c.last_name if c else '' }}"
                class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
       </label>
     </div>
@@ -22,31 +23,31 @@
     <div class="flex gap-3">
       <label class="block flex-1">
         <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Date of birth</span>
-        <input type="date" name="dob"
+        <input type="date" name="dob" value="{{ c.dob.strftime('%Y-%m-%d') if c and c.dob else '' }}"
                class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
       </label>
       <label class="block flex-1">
         <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Phone</span>
-        <input type="text" name="phone"
+        <input type="text" name="phone" value="{{ (c.phone or '') if c else '' }}"
                class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
       </label>
     </div>
 
     <label class="block">
       <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Email</span>
-      <input type="email" name="email"
+      <input type="email" name="email" value="{{ (c.email or '') if c else '' }}"
              class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
     </label>
 
     <div class="flex gap-3">
       <label class="block flex-1">
         <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Insurance company</span>
-        <input type="text" name="insurance_company"
+        <input type="text" name="insurance_company" value="{{ (c.insurance_company or '') if c else '' }}"
                class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
       </label>
       <label class="block flex-1">
         <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Member ID</span>
-        <input type="text" name="insurance_id"
+        <input type="text" name="insurance_id" value="{{ (c.insurance_id or '') if c else '' }}"
                class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
       </label>
     </div>
@@ -54,16 +55,17 @@
     <div class="flex gap-3">
       <label class="block flex-1">
         <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Group number</span>
-        <input type="text" name="group_number"
+        <input type="text" name="group_number" value="{{ (c.group_number or '') if c else '' }}"
                class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
       </label>
       <label class="block flex-1">
         <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Diagnosis codes (ICD-10)</span>
-        <input type="text" name="diagnosis_codes" placeholder="e.g. F41.1, F33.0"
+        <input type="text" name="diagnosis_codes" placeholder="e.g. F41.1, F33.0" value="{{ (c.diagnosis_codes or '') if c else '' }}"
                class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
       </label>
     </div>
 
+    {% if not c %}
     <label class="flex items-center gap-2 pt-1">
       <input type="checkbox" name="email_reminders" value="1"
              class="rounded border-gray-300 dark:border-slate-600 text-teal-600" />
@@ -71,13 +73,14 @@
         Send email appointment reminders (client has consented)
       </span>
     </label>
+    {% endif %}
 
     <div class="flex gap-2 pt-2">
       <button type="submit"
               class="px-5 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors">
-        Create client
+        {{ 'Save changes' if c else 'Create client' }}
       </button>
-      <a href="/clients"
+      <a href="{{ '/clients/' ~ c.id if c else '/clients' }}"
          class="px-5 py-2 border border-gray-200 dark:border-slate-700 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
         Cancel
       </a>
