@@ -41,6 +41,15 @@ async def new_client_form(request: Request):
     )
 
 
+def _parse_dob(dob: str):
+    if dob:
+        try:
+            return datetime.strptime(dob, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+    return None
+
+
 @router.post("/clients")
 async def create_client(
     first_name: str = Form(...),
@@ -55,13 +64,7 @@ async def create_client(
     email_reminders: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    parsed_dob = None
-    if dob:
-        try:
-            parsed_dob = datetime.strptime(dob, "%Y-%m-%d").date()
-        except ValueError:
-            parsed_dob = None
-
+    parsed_dob = _parse_dob(dob)
     opted_in = bool(email_reminders) and bool(email)
     client = Client(
         first_name=first_name,
@@ -79,6 +82,48 @@ async def create_client(
     db.add(client)
     db.commit()
     return RedirectResponse(url="/clients", status_code=303)
+
+
+@router.get("/clients/{client_id}/edit")
+async def edit_client_form(request: Request, client_id: int, db: Session = Depends(get_db)):
+    client = db.get(Client, client_id)
+    if client is None:
+        raise HTTPException(status_code=404, detail="Client not found")
+    return templates.TemplateResponse(
+        request, "clients/form.html", {"active_nav": "clients", "client": client}
+    )
+
+
+@router.post("/clients/{client_id}/edit")
+async def update_client(
+    client_id: int,
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    dob: str = Form(""),
+    email: str = Form(""),
+    phone: str = Form(""),
+    insurance_company: str = Form(""),
+    insurance_id: str = Form(""),
+    group_number: str = Form(""),
+    diagnosis_codes: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    client = db.get(Client, client_id)
+    if client is None:
+        raise HTTPException(status_code=404, detail="Client not found")
+    # Demographics/insurance only — reminder consent is managed by its own toggle
+    # so the permanent-opt-out invariant is preserved.
+    client.first_name = first_name
+    client.last_name = last_name
+    client.dob = _parse_dob(dob)
+    client.email = email
+    client.phone = phone
+    client.insurance_company = insurance_company
+    client.insurance_id = insurance_id
+    client.group_number = group_number
+    client.diagnosis_codes = diagnosis_codes
+    db.commit()
+    return RedirectResponse(url=f"/clients/{client_id}", status_code=303)
 
 
 @router.post("/clients/{client_id}/reminders")

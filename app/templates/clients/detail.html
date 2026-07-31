@@ -17,6 +17,10 @@
         {% if client.phone %}<a href="tel:{{ client.phone }}" class="hover:underline">{{ client.phone }}</a>{% endif %}
       </div>
     </div>
+    <a href="/clients/{{ client.id }}/edit"
+       class="text-sm px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+      Edit
+    </a>
   </div>
 
   <!-- Stat cards -->

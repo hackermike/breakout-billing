@@ -31,6 +31,49 @@ def test_create_client(client, db):
     assert db.query(Client).filter_by(last_name="Person").count() == 1
 
 
+def test_edit_client_form_prefilled(client, sample_client):
+    r = client.get(f"/clients/{sample_client.id}/edit")
+    assert r.status_code == 200
+    assert f'value="{sample_client.first_name}"' in r.text
+    assert "Save changes" in r.text
+
+
+def test_update_client(client, db, sample_client):
+    r = client.post(
+        f"/clients/{sample_client.id}/edit",
+        data={"first_name": "Renamed", "last_name": sample_client.last_name,
+              "phone": "(555) 000-1111", "insurance_company": "New Insurer",
+              "diagnosis_codes": "F33.1"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    db.refresh(sample_client)
+    assert sample_client.first_name == "Renamed"
+    assert sample_client.phone == "(555) 000-1111"
+    assert sample_client.insurance_company == "New Insurer"
+    assert sample_client.diagnosis_codes == "F33.1"
+
+
+def test_update_client_preserves_reminder_prefs(client, db, sample_client):
+    from datetime import datetime as dt
+    sample_client.reminder_channel = "email"
+    sample_client.email_consent_at = dt(2026, 7, 1, 9, 0)
+    db.commit()
+    client.post(
+        f"/clients/{sample_client.id}/edit",
+        data={"first_name": sample_client.first_name, "last_name": sample_client.last_name},
+        follow_redirects=False,
+    )
+    db.refresh(sample_client)
+    assert sample_client.reminder_channel == "email"  # edit form doesn't touch reminders
+
+
+def test_update_unknown_client_404(client):
+    r = client.post("/clients/9999/edit",
+                    data={"first_name": "X", "last_name": "Y"}, follow_redirects=False)
+    assert r.status_code == 404
+
+
 def test_client_detail_page(client, sample_appointment):
     r = client.get(f"/clients/{sample_appointment.client_id}")
     assert r.status_code == 200
