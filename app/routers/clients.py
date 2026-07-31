@@ -42,12 +42,14 @@ async def new_client_form(request: Request):
 
 
 def _parse_dob(dob: str):
-    if dob:
-        try:
-            return datetime.strptime(dob, "%Y-%m-%d").date()
-        except ValueError:
-            return None
-    return None
+    """Empty -> None; a malformed value is rejected rather than silently dropped
+    (which on edit would clear an existing DOB)."""
+    if not dob:
+        return None
+    try:
+        return datetime.strptime(dob, "%Y-%m-%d").date()
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="Date of birth must use YYYY-MM-DD") from exc
 
 
 @router.post("/clients")

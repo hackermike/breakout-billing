@@ -56,16 +56,34 @@ def test_update_client(client, db, sample_client):
 
 def test_update_client_preserves_reminder_prefs(client, db, sample_client):
     from datetime import datetime as dt
+    consent = dt(2026, 7, 1, 9, 0)
     sample_client.reminder_channel = "email"
-    sample_client.email_consent_at = dt(2026, 7, 1, 9, 0)
+    sample_client.email_consent_at = consent
     db.commit()
-    client.post(
+    r = client.post(
         f"/clients/{sample_client.id}/edit",
         data={"first_name": sample_client.first_name, "last_name": sample_client.last_name},
         follow_redirects=False,
     )
+    assert r.status_code == 303
     db.refresh(sample_client)
     assert sample_client.reminder_channel == "email"  # edit form doesn't touch reminders
+    assert sample_client.email_consent_at == consent  # consent timestamp untouched
+
+
+def test_update_client_rejects_malformed_dob(client, db, sample_client):
+    from datetime import date
+    sample_client.dob = date(1990, 1, 1)
+    db.commit()
+    r = client.post(
+        f"/clients/{sample_client.id}/edit",
+        data={"first_name": sample_client.first_name, "last_name": sample_client.last_name,
+              "dob": "not-a-date"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 422
+    db.refresh(sample_client)
+    assert sample_client.dob == date(1990, 1, 1)  # malformed input didn't clear it
 
 
 def test_update_unknown_client_404(client):
