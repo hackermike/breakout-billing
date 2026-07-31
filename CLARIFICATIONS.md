@@ -7,10 +7,12 @@ product/owner call, not a technical one.
 
 There are **two different products**, and this repository is the first one:
 
-- **This product — a pared-down SimplePractice.** Appointment tracking, payment
-  tracking, and superbill generation for a solo private-practice therapist who
-  **does not process insurance claims**. One person can run it themselves. This
-  is what Breakout Billing is, and it's largely built.
+- **This product — a pared-down SimplePractice.** Two pillars: **scheduling**
+  (the calendar/appointments) and **billing** (payments + superbills), for a solo
+  private-practice therapist who **does not process insurance claims**. It runs on
+  the therapist's **own machine — the predominant and likely the only deployment**
+  (no hosted or multi-tenant mode). One person can run it themselves. This is what
+  Breakout Billing is, and it's largely built.
 - **Not this product — a non-profit BetterHelp.** Insurance billing, video
   visits, a client-facing interface, and scaling to thousands of therapists.
   That's a much larger undertaking that needs an organization and staff, not just
@@ -23,7 +25,9 @@ This resolves the questions below:
    is the separate BetterHelp effort, not a v2 of this.
 2. **Billing-only, or a fuller EHR?** → **Billing/scheduling only.** Clinical
    progress/psychotherapy notes are out of scope.
-3. **Hosting model?** → **Self-hosted / local**, owned by the therapist.
+3. **Hosting model?** → **Local machine only** (predominant, likely sole
+   deployment). No hosted/multi-tenant mode; features are designed for a single
+   therapist on their own computer.
 
 Everything below is either resolved by the above (insurance items 4–7 → **no**,
 superbills only) or is a smaller in-scope decision that still stands.
