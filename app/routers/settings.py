@@ -56,6 +56,7 @@ async def save_settings(
     phone: str = Form(""),
     email: str = Form(""),
     tax_id: str = Form(""),
+    email_baa_confirmed: str = Form(""),
     db: Session = Depends(get_db),
 ):
     provider = get_or_create_provider(db)
@@ -68,5 +69,6 @@ async def save_settings(
     provider.phone = phone
     provider.email = email
     provider.tax_id = tax_id
+    provider.email_baa_confirmed = bool(email_baa_confirmed)
     db.commit()
     return RedirectResponse(url="/settings?saved=true", status_code=303)

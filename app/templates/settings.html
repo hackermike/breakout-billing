@@ -38,6 +38,16 @@
     </label>
     {% endfor %}
 
+    <label class="flex items-start gap-2 pt-2">
+      <input type="checkbox" name="email_baa_confirmed" value="1"
+             {{ 'checked' if provider.email_baa_confirmed }}
+             class="mt-0.5 rounded border-gray-300 dark:border-slate-600 text-teal-600" />
+      <span class="text-sm text-gray-600 dark:text-gray-300">
+        My email provider has a signed <strong>BAA</strong> (e.g. Google Workspace or Amazon SES —
+        <em>not</em> consumer Gmail). Required before appointment reminders will actually send.
+      </span>
+    </label>
+
     <div class="pt-2">
       <button type="submit"
               class="px-5 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors">

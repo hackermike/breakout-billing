@@ -21,8 +21,14 @@
 
   {% if not email_configured %}
   <div class="mb-4 px-4 py-2.5 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-sm">
-    Email isn't configured, so reminders run in <strong>preview mode</strong> (logged, not delivered).
+    Email isn't configured, so reminders run in <strong>preview mode</strong> (nothing delivered; they stay due).
     Set <span class="font-mono">SMTP_HOST</span> / <span class="font-mono">SMTP_FROM</span> (and credentials) to send for real — see Settings.
+  </div>
+  {% elif not baa_confirmed %}
+  <div class="mb-4 px-4 py-2.5 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-sm">
+    Reminders name a client and appointment time — that's PHI in transit. Email is configured, but
+    reminders stay in <strong>preview mode</strong> until you confirm in <a href="/settings" class="underline">Settings</a>
+    that your email provider has a signed <strong>BAA</strong> (e.g. Google Workspace or Amazon SES — not consumer Gmail).
   </div>
   {% endif %}
 
