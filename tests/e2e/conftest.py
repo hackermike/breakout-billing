@@ -7,6 +7,7 @@ installed (CI runs them in a dedicated job).
 import os
 import socket
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -28,9 +29,11 @@ def live_server():
     env = {**os.environ, "DATABASE_URL": f"sqlite:///{tmp}/e2e.db"}
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
-    subprocess.run(["python", "seed.py"], env=env, cwd=repo_root, check=True)
+    # Use the current interpreter so this runs both in CI and from a local venv.
+    subprocess.run([sys.executable, "seed.py"], env=env, cwd=repo_root, check=True)
     proc = subprocess.Popen(
-        ["uvicorn", "app.main:app", "--port", str(port), "--log-level", "warning"],
+        [sys.executable, "-m", "uvicorn", "app.main:app",
+         "--port", str(port), "--log-level", "warning"],
         env=env, cwd=repo_root,
     )
 
@@ -39,7 +42,8 @@ def live_server():
         import urllib.request
         for _ in range(60):
             try:
-                urllib.request.urlopen(f"{base}/calendar", timeout=1)
+                # /healthz is unauthenticated, so readiness works before login.
+                urllib.request.urlopen(f"{base}/healthz", timeout=1)
                 break
             except Exception:
                 time.sleep(0.5)
