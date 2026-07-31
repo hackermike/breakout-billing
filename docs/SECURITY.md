@@ -31,6 +31,9 @@ This document summarizes a full review of the codebase.
 - **Reminders are PHI-minimal** — emails contain practice + date/time only (no
   name or diagnosis), and the notification log stores no message body.
 - **No debug mode** — tracebacks aren't exposed to clients.
+- **Audit trail** — every authenticated request to a non-exempt path is recorded
+  (method, path, status, time) in an append-only `audit_log`, viewable at
+  `/audit`. Path parameters identify what was accessed; no PHI values are stored.
 
 ## Findings
 

@@ -6,9 +6,12 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 import app.models  # noqa: F401 — registers all models with Base
-from app import auth
+from app import audit, auth
 from app.database import SessionLocal
 from app.db_init import run_migrations
+from app.routers import (
+    audit as audit_router,
+)
 from app.routers import (
     auth as auth_router,
 )
@@ -55,7 +58,11 @@ async def require_login(request: Request, call_next):
         return RedirectResponse(url="/setup", status_code=303)
     if not request.session.get("authenticated"):
         return RedirectResponse(url="/login", status_code=303)
-    return await call_next(request)
+
+    response = await call_next(request)
+    if audit.should_log(path):
+        audit.record(request.method, path, response.status_code)
+    return response
 
 
 # SessionMiddleware is added last so it wraps (runs before) require_login,
@@ -72,6 +79,7 @@ app.include_router(superbills.router)
 app.include_router(settings.router)
 app.include_router(reports.router)
 app.include_router(reminders.router)
+app.include_router(audit_router.router)
 app.include_router(pages.router)
 
 
