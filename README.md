@@ -9,6 +9,13 @@
 
 ---
 
+**Who it's for:** a solo private-practice therapist who bills clients directly
+(self-pay / out-of-network) and hands them **superbills** to submit for
+reimbursement. It intentionally does **not** file insurance claims, host video
+visits, or offer a client portal — that's a much larger, separate undertaking
+(see [CLARIFICATIONS.md](CLARIFICATIONS.md#decided-scope-2026-07-30)). This is the
+tool one therapist can run on their own laptop.
+
 ![Calendar view](docs/screenshot-calendar.png)
 
 ## What it does
