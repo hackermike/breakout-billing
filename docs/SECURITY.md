@@ -20,8 +20,11 @@ This document summarizes a full review of the codebase.
 - **No dangerous sinks** — no `eval`/`exec`/`subprocess`/`os.system`/`pickle`/
   `yaml.load`.
 - **No secrets in the repo** — SMTP credentials come from environment variables;
-  `.env`, `*.db`, and `backups/` are gitignored, so the PHI database and secrets
-  are never committed.
+  `.env`, `*.db`, and `backups/` are ignored by default. Note that `.gitignore`
+  only prevents *future* tracking, so this must be backed by a check of the
+  working tree **and repository history** (plus secret scanning). Verified for
+  this repo: only `.env.example` (a no-secrets template) is tracked, and no `.env`,
+  `*.db`, or `backups/` path appears anywhere in history.
 - **Uploads are bounded** — CSV import caps size (~5 MB) and rows (20k), handles
   malformed CSV, and filters client creation to an allowlist of fields (no mass
   assignment).

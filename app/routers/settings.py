@@ -34,10 +34,11 @@ async def send_test_email(db: Session = Depends(get_db)):
     # Always send to the practice's own configured address — never an arbitrary
     # recipient — so this unauthenticated endpoint can't be used as a mail relay.
     provider = get_or_create_provider(db)
-    if not provider.email:
+    recipient = (provider.email or "").strip()
+    if not recipient:
         return RedirectResponse(url="/settings?tested=noaddr", status_code=303)
     ok = send_email(
-        provider.email,
+        recipient,
         "Test email from Breakout Billing",
         "This is a test — your email settings are working.",
     )

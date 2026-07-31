@@ -106,21 +106,28 @@ def _set_provider_email(db, email="practice@example.com"):
     db.commit()
 
 
-def test_send_test_email_ok(client, db, monkeypatch):
+def _capture_send_email(monkeypatch, returns=True):
     import app.routers.settings as st
-    monkeypatch.setattr(st, "send_email", lambda *a, **k: True)
-    _set_provider_email(db)
+    recipients = []
+    monkeypatch.setattr(st, "send_email", lambda to, *a, **k: recipients.append(to) or returns)
+    return recipients
+
+
+def test_send_test_email_ok(client, db, monkeypatch):
+    recipients = _capture_send_email(monkeypatch, returns=True)
+    _set_provider_email(db, "practice@example.com")
     r = client.post("/settings/test-email", follow_redirects=False)
     assert r.status_code == 303
     assert "tested=ok" in r.headers["location"]
+    assert recipients == ["practice@example.com"]  # sole recipient is the provider
 
 
 def test_send_test_email_failure(client, db, monkeypatch):
-    import app.routers.settings as st
-    monkeypatch.setattr(st, "send_email", lambda *a, **k: False)
-    _set_provider_email(db)
+    recipients = _capture_send_email(monkeypatch, returns=False)
+    _set_provider_email(db, "practice@example.com")
     r = client.post("/settings/test-email", follow_redirects=False)
     assert "tested=fail" in r.headers["location"]
+    assert recipients == ["practice@example.com"]
 
 
 def test_send_test_email_requires_provider_address(client, db, monkeypatch):
