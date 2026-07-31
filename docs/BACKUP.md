@@ -2,63 +2,100 @@
 
 Breakout Billing stores everything — clients, appointments, payments, provider
 settings — in a single SQLite file named `breakout.db` in the project folder.
-Backing up your practice is simply keeping safe copies of that one file.
+Backing up your practice is keeping safe copies of that one file.
 
-## Why not just copy the file?
+## Making a backup
 
-Copying `breakout.db` with Finder or `cp` while the app is running can capture a
-half-written file. The backup script uses SQLite's online backup, which produces
-a consistent snapshot even mid-session:
-
-```bash
-./scripts/backup.sh
-```
-
-It writes `backups/breakout-YYYYMMDD-HHMMSS.db` and keeps the 30 most recent
-copies. To back up to an external drive instead:
+The backup script uses SQLite's online backup (a consistent snapshot even while
+the app is running — a plain `cp` can catch a half-written file):
 
 ```bash
-./scripts/backup.sh /Volumes/MyEncryptedDrive/breakout-backups
+./scripts/backup.sh                                   # -> backups/
+./scripts/backup.sh /Volumes/MyEncryptedDrive/bb      # -> another location
 ```
 
-## Recommended routine (solo practice)
+It keeps the 30 most recent backups and prunes older ones.
 
-A practical, HIPAA-minded routine:
+## Encrypt backups that leave your machine
 
-1. **Daily local snapshot.** Run `./scripts/backup.sh` at the end of each work
-   day. Thirty rolling copies give you about a month of history.
-2. **Weekly to an encrypted external drive.** Copy to a drive formatted with
-   macOS encryption (APFS Encrypted) or a hardware-encrypted USB drive. This
-   protects against your laptop being lost, stolen, or failing.
-3. **Periodic offsite copy.** Once a month, move a copy offsite — a second
-   encrypted drive kept elsewhere, or an encrypted archive in cloud storage
-   **that you have a signed BAA with** (see below). This covers fire/theft of
-   the whole location.
+A plaintext `.db` backup is fine on your Mac's own disk (FileVault covers it), but
+**not** on a synced drive (iCloud/Dropbox/Google Drive) or a backup service —
+there it's readable PHI. Set a passphrase and the backup is AES-256 encrypted:
 
-Automate the daily step with `cron` or a `launchd` agent if you like — it's just
-a shell command.
+```bash
+export BACKUP_PASSPHRASE='a long passphrase you keep in your password manager'
+./scripts/backup.sh          # -> backups/breakout-*.db.enc
+```
 
-## Encrypting backups
-
-Because backups contain PHI, they must be encrypted at rest just like the live
-database:
-
-- **FileVault** encrypts everything on your Mac's internal drive, including
-  `backups/` — keep it on.
-- **External drives** should be encrypted (APFS Encrypted via Disk Utility, or a
-  hardware-encrypted drive).
-- **Cloud storage** is only appropriate if the provider will sign a Business
-  Associate Agreement (BAA). Consumer Dropbox/iCloud/Google Drive generally do
-  **not** offer a BAA. If you must use cloud without one, encrypt the file
-  yourself first (e.g. an encrypted disk image / `.dmg`, or `age`/`gpg`).
+- **Keep the passphrase in your password manager**, not only on the laptop — if
+  the machine dies, you need it to restore. Losing it means losing the backups.
+- Encrypted backups are safe to sync/upload anywhere. (Even so, a cloud provider
+  that will sign a **BAA** is the correct choice for PHI — consumer
+  iCloud/Dropbox/Google Drive do not offer one.)
 
 ## Restoring
 
-To restore, stop the app and replace `breakout.db` with a backup copy:
-
 ```bash
-cp backups/breakout-20260130-090000.db breakout.db
+./scripts/restore.sh backups/breakout-20260130-090000.db          # plaintext
+BACKUP_PASSPHRASE='...' ./scripts/restore.sh backups/....db.enc   # encrypted
 ```
 
-Then start the app again. Consider copying your current `breakout.db` aside first
-in case you picked the wrong snapshot.
+Restore **copies your current database aside first** (`breakout.db.pre-restore-*`)
+and **integrity-checks** the backup before it replaces the live database, so a
+wrong or corrupt file can't clobber your data. Stop the app before restoring.
+
+> **This has been tested.** A backup nobody has restored is a hypothesis. The
+> restore path is exercised by `scripts/dev/backup-drill.sh`, which makes an
+> encrypted backup, wipes data, restores, and verifies the row counts match —
+> and by the automated tests.
+
+## Recommended routine (solo practice)
+
+1. **Daily local snapshot** — `./scripts/backup.sh` at the end of each work day
+   (30 rolling copies ≈ a month of history).
+2. **Weekly to an encrypted external drive** — set `BACKUP_PASSPHRASE` and back up
+   to an APFS-Encrypted or hardware-encrypted drive. Protects against a lost,
+   stolen, or dead laptop.
+3. **Periodic offsite copy** — monthly, move an **encrypted** copy offsite (a
+   second drive elsewhere, or cloud storage with a BAA). Covers fire/theft.
+
+## Scheduling it
+
+Nothing runs the backup for you — schedule it.
+
+**cron** (`crontab -e`) — daily at 6pm, encrypted:
+
+```
+0 18 * * * cd /path/to/breakout-billing && BACKUP_PASSPHRASE='...' ./scripts/backup.sh >> backups/backup.log 2>&1
+```
+
+**launchd** (macOS) — create `~/Library/LaunchAgents/com.breakoutbilling.backup.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.breakoutbilling.backup</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string><string>-lc</string>
+    <string>cd /path/to/breakout-billing &amp;&amp; ./scripts/backup.sh</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict><key>BACKUP_PASSPHRASE</key><string>your-passphrase</string></dict>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
+</dict></plist>
+```
+
+Then `launchctl load ~/Library/LaunchAgents/com.breakoutbilling.backup.plist`.
+Whichever you use, **run a restore drill occasionally** so you know it works.
+
+## What about the live database?
+
+`breakout.db` itself is a plaintext SQLite file, protected at rest by **FileVault**
+on your Mac. That's appropriate for a local single-user tool. Encrypting the live
+database itself (so it's unreadable even without FileVault) would require
+SQLCipher — a worthwhile future option if the app is ever hosted or kept on shared
+storage.
