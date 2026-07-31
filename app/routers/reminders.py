@@ -49,6 +49,7 @@ def _due_appointments(db: Session) -> list[Appointment]:
 
 
 def _render(request: Request, db: Session, sent=None):
+    provider = get_or_create_provider(db)
     return templates.TemplateResponse(
         request,
         "reminders.html",
@@ -56,6 +57,7 @@ def _render(request: Request, db: Session, sent=None):
             "active_nav": "reminders",
             "due": _due_appointments(db),
             "email_configured": email_configured(),
+            "baa_confirmed": bool(provider.email_baa_confirmed),
             "sent": sent,
         },
     )
@@ -92,9 +94,11 @@ def _release_slot(db: Session, appointment_id: int) -> None:
 @router.post("/reminders/send")
 async def send_reminders(request: Request, db: Session = Depends(get_db)):
     provider = get_or_create_provider(db)
-    # Preview mode (no SMTP) must not finalize a reminder — otherwise configuring
-    # email later couldn't deliver it, since it would no longer be "due".
-    preview = not email_configured()
+    # Real delivery requires both a configured transport AND a confirmation that
+    # it's BAA-covered — reminders name a client + appointment (PHI in transit),
+    # so we won't send over an unconfirmed transport. Preview mode also never
+    # finalizes a reminder, so configuring email later still delivers it.
+    preview = not (email_configured() and provider.email_baa_confirmed)
 
     sent = previewed = failed = 0
     for appt in _due_appointments(db):

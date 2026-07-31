@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Boolean, Column, Integer, String
 
 from app.database import Base
 
@@ -16,3 +16,6 @@ class Provider(Base):
     phone = Column(String)
     email = Column(String)
     tax_id = Column(String)
+    # The therapist must confirm their email transport has a signed BAA before
+    # real reminders (which name a client + appointment = PHI) will send.
+    email_baa_confirmed = Column(Boolean, default=False)

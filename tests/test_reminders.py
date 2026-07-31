@@ -52,14 +52,20 @@ def test_reminders_panel_lists_due(client, db):
     assert "rey@example.com" in r.text
 
 
-def _configure_email(monkeypatch, delivers=True):
+def _configure_email(monkeypatch, db, delivers=True):
+    """Configure a working transport AND confirm it's BAA-covered (both required
+    before real reminders send)."""
     import app.routers.reminders as rem
+    from app.crud import get_or_create_provider
     monkeypatch.setattr(rem, "email_configured", lambda: True)
     monkeypatch.setattr(rem, "send_email", lambda *a, **k: delivers)
+    provider = get_or_create_provider(db)
+    provider.email_baa_confirmed = True
+    db.commit()
 
 
 def test_send_reminders_is_idempotent(client, db, monkeypatch):
-    _configure_email(monkeypatch)
+    _configure_email(monkeypatch, db)
     c = _opted_in_client(db)
     _soon(db, c.id)
 
@@ -83,12 +89,33 @@ def test_preview_mode_does_not_finalize(client, db):
 
 
 def test_failed_send_is_retryable(client, db, monkeypatch):
-    _configure_email(monkeypatch, delivers=False)
+    _configure_email(monkeypatch, db, delivers=False)
     c = _opted_in_client(db)
     _soon(db, c.id)
     client.post("/reminders/send")
     assert db.query(NotificationLog).count() == 0  # claim released on failure
     assert "rey@example.com" in client.get("/reminders").text  # still due
+
+
+def test_configured_but_unconfirmed_baa_stays_preview(client, db, monkeypatch):
+    # Transport works, but BAA not confirmed -> must not send PHI; stays preview.
+    import app.routers.reminders as rem
+    monkeypatch.setattr(rem, "email_configured", lambda: True)
+    monkeypatch.setattr(rem, "send_email", lambda *a, **k: True)
+    c = _opted_in_client(db)
+    _soon(db, c.id)
+    r = client.post("/reminders/send")
+    assert "Previewed 1 reminder" in r.text
+    assert db.query(NotificationLog).count() == 0
+    # The panel explains the confirmation requirement.
+    assert "BAA" in client.get("/reminders").text
+
+
+def test_settings_saves_baa_confirmation(client, db):
+    from app.crud import get_or_create_provider
+    client.post("/settings", data={"name": "Dr. X", "email_baa_confirmed": "1"},
+                follow_redirects=False)
+    assert get_or_create_provider(db).email_baa_confirmed is True
 
 
 def test_opted_out_client_not_due(client, db):

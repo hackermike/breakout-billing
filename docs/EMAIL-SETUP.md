@@ -25,6 +25,19 @@ Then go to **Settings → Email** and click **Send test email** to confirm it wo
 > **Never commit these values.** Keep them in the environment, not in the repo or
 > the database.
 
+## Confirm your transport has a BAA (required to send)
+
+Appointment reminders name a client and a time — PHI in transit — so the app
+**won't send them for real until you confirm** in **Settings** that your email
+provider has a signed **BAA**. Check the box:
+
+> *My email provider has a signed BAA (e.g. Google Workspace or Amazon SES — not
+> consumer Gmail).*
+
+Until it's checked, reminders stay in preview mode even with SMTP configured. Use
+**Google Workspace** or **Amazon SES** (both sign BAAs); **consumer Gmail does
+not** and must not be used for reminders.
+
 ## Option A — Quick test (not for real client data)
 
 To just see email working, use a developer SMTP inbox like **Mailtrap** (free) or

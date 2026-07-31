@@ -19,6 +19,23 @@ This document is a plan; nothing here is built yet.
 4. Keep **PHI out of message bodies** — reminders say *when* and *with whom*,
    never diagnosis or notes.
 
+## Transport decision (decided)
+
+A reminder like "your session is Tuesday at 2pm" identifies the recipient as
+someone receiving mental-health care — that's **PHI in transit**. So the email
+transport itself must be covered by a **BAA**:
+
+- **Use** a transport with a signed BAA — **Google Workspace** (if the practice
+  already uses it) or **Amazon SES**. These are the recommended choices.
+- **Do not use** consumer **Gmail** or other consumer email — no BAA, so sending
+  a reminder through them is a HIPAA violation even though the body is minimal.
+
+**Enforced in the app:** reminders only send for real once the therapist checks
+"my email provider has a signed BAA" in **Settings** (`Provider.email_baa_confirmed`).
+Until then — even with SMTP configured — reminders stay in **preview mode**, so a
+misconfigured consumer account can't leak PHI. Bodies are already minimal-PHI as a
+second layer.
+
 ## SMS options, cost, and limits
 
 **Twilio Programmable SMS** is the default choice and is **HIPAA-eligible under a

@@ -34,6 +34,10 @@ This document summarizes a full review of the codebase.
 - **Audit trail** — every authenticated request to a non-exempt path is recorded
   (method, path, status, time) in an append-only `audit_log`, viewable at
   `/audit`. Path parameters identify what was accessed; no PHI values are stored.
+- **PHI-in-transit guardrail** — appointment reminders only send once the
+  therapist confirms in Settings that their email transport has a signed BAA;
+  otherwise they stay preview-only, so a consumer email account can't leak PHI.
+  Reminder bodies are also minimal-PHI (practice + date/time only).
 
 ## Findings
 
