@@ -11,6 +11,9 @@ dist/
 build/
 *.egg-info/
 
+# Session-signing key (per install; never commit)
+.secret_key
+
 # Claude Code local permission grants (machine-specific, not for sharing)
 .claude/settings.local.json
 

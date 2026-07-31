@@ -37,7 +37,7 @@ This document summarizes a full review of the codebase.
 | # | Finding | Severity (local / hosted) | Status |
 |---|---------|---------------------------|--------|
 | 1 | `POST /settings/test-email` accepted an arbitrary recipient (mail-relay abuse) | Low / Medium | **Fixed** — sends only to the provider's own address |
-| 2 | No authentication anywhere | Accepted / **Critical** | By design; see boundary below |
+| 2 | No authentication | — / **Critical** | **Fixed** — single-user password + session gates every route |
 | 3 | Interactive docs (`/docs`, `/openapi.json`) exposed | Low / Low | Recommend disabling if hosted |
 | 4 | No CSRF tokens on POST forms | N/A / Medium | Needed before multi-user/hosted |
 | 5 | Payment `amount` not validated (negatives allowed) | Low / Low | Data-integrity; decide refunds vs. reject |
@@ -45,11 +45,12 @@ This document summarizes a full review of the codebase.
 
 ## The boundary (most important)
 
-The whole app is unauthenticated, so **anyone who can reach the port can read and
-change all client PHI**. That is acceptable only because it's a local tool bound
-to your own machine. Before any hosted or multi-user deployment you must add:
+The app now requires a **password** (set on first run) and gates every route
+behind a signed session — so a lost/borrowed laptop doesn't hand over all PHI.
+It's still **single-user**: there are no per-user accounts or roles. Before any
+hosted or multi-user deployment you'd still need:
 
-- authentication and per-user data isolation,
+- per-user accounts and data isolation (the current password is one shared login),
 - CSRF protection on state-changing requests,
 - disabled/guarded API docs,
 - a BAA-covered host and email provider (see `docs/NOTIFICATIONS-PLAN.md`),

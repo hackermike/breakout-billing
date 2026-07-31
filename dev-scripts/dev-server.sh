@@ -20,8 +20,9 @@ sleep 1
 SERVER_PID=$!
 
 # Poll for readiness rather than sleeping a fixed amount.
+# /healthz is unauthenticated, so it works whether or not login is configured.
 for _ in $(seq 1 20); do
-  code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:${PORT}/calendar" || echo 000)
+  code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:${PORT}/healthz" || echo 000)
   if [ "${code}" = "200" ]; then
     echo "Dev server ready on http://localhost:${PORT} (pid ${SERVER_PID}, log ${LOG})"
     exit 0

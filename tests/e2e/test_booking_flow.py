@@ -16,6 +16,14 @@ def test_book_and_pay(live_server):
         page = browser.new_page()
         page.goto(f"{live_server}/calendar")
 
+        # First run requires setting a password (the scratch DB is unconfigured).
+        page.wait_for_load_state("networkidle")
+        if "/setup" in page.url:
+            page.fill('input[name="password"]', "e2epassword1")
+            page.fill('input[name="confirm"]', "e2epassword1")
+            page.click('button:has-text("Set password")')
+            page.wait_for_url("**/calendar")
+
         # Open an empty day and add an appointment.
         page.click('div[hx-get="/calendar/day/2026-07-05"]')
         page.wait_for_selector("text=+ Add appointment")
