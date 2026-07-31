@@ -99,21 +99,45 @@ def test_opted_out_client_not_due(client, db):
     assert "rey@example.com" not in client.get("/reminders").text
 
 
-def test_send_test_email_ok(client, monkeypatch):
+def _set_provider_email(db, email="practice@example.com"):
+    from app.crud import get_or_create_provider
+    p = get_or_create_provider(db)
+    p.email = email
+    db.commit()
+
+
+def _capture_send_email(monkeypatch, returns=True):
     import app.routers.settings as st
-    monkeypatch.setattr(st, "send_email", lambda *a, **k: True)
-    r = client.post("/settings/test-email", data={"to": "me@example.com"},
-                    follow_redirects=False)
+    recipients = []
+    monkeypatch.setattr(st, "send_email", lambda to, *a, **k: recipients.append(to) or returns)
+    return recipients
+
+
+def test_send_test_email_ok(client, db, monkeypatch):
+    recipients = _capture_send_email(monkeypatch, returns=True)
+    _set_provider_email(db, "practice@example.com")
+    r = client.post("/settings/test-email", follow_redirects=False)
     assert r.status_code == 303
     assert "tested=ok" in r.headers["location"]
+    assert recipients == ["practice@example.com"]  # sole recipient is the provider
 
 
-def test_send_test_email_failure(client, monkeypatch):
-    import app.routers.settings as st
-    monkeypatch.setattr(st, "send_email", lambda *a, **k: False)
-    r = client.post("/settings/test-email", data={"to": "me@example.com"},
-                    follow_redirects=False)
+def test_send_test_email_failure(client, db, monkeypatch):
+    recipients = _capture_send_email(monkeypatch, returns=False)
+    _set_provider_email(db, "practice@example.com")
+    r = client.post("/settings/test-email", follow_redirects=False)
     assert "tested=fail" in r.headers["location"]
+    assert recipients == ["practice@example.com"]
+
+
+def test_send_test_email_requires_provider_address(client, db, monkeypatch):
+    # No provider email set -> refuses to send (no arbitrary recipient).
+    import app.routers.settings as st
+    sent = []
+    monkeypatch.setattr(st, "send_email", lambda *a, **k: sent.append(a) or True)
+    r = client.post("/settings/test-email", follow_redirects=False)
+    assert "tested=noaddr" in r.headers["location"]
+    assert sent == []
 
 
 def test_toggle_client_reminders(client, db):
