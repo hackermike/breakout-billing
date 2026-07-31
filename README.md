@@ -82,7 +82,9 @@ This writes a timestamped copy to `backups/` and keeps the 30 most recent. See [
 
 ## HIPAA
 
-Running locally means your data never leaves your computer. Turn on FileVault disk encryption (`System Settings → Privacy & Security → FileVault`) to satisfy the HIPAA encryption-at-rest requirement for a solo practice. Keep backups encrypted too — see [docs/BACKUP.md](docs/BACKUP.md).
+On first launch you'll set a **password** — it protects the app on your machine, so a lost or borrowed laptop doesn't hand over client data.
+
+Running locally means your data never leaves your computer. Turn on FileVault disk encryption (`System Settings → Privacy & Security → FileVault`) to satisfy the HIPAA encryption-at-rest requirement for a solo practice. Keep backups encrypted too — see [docs/BACKUP.md](docs/BACKUP.md). Security posture and boundaries: [docs/SECURITY.md](docs/SECURITY.md).
 
 ## For developers
 

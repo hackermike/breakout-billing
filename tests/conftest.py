@@ -41,8 +41,21 @@ def db():
 
 
 @pytest.fixture
-def client():
+def raw_client():
+    """A client that is NOT signed in (for testing auth itself)."""
     return TestClient(app)
+
+
+@pytest.fixture
+def client(db):
+    """A signed-in client: sets a password and logs in, so route tests can run
+    against the authenticated app."""
+    from app import auth
+
+    auth.set_password(db, "testpassword")
+    c = TestClient(app)
+    c.post("/login", data={"password": "testpassword"})
+    return c
 
 
 @pytest.fixture

@@ -19,19 +19,25 @@ echo "Seeding scratch database..."
 echo "Starting server on :${PORT}..."
 "${UVICORN}" app.main:app --port "${PORT}" --log-level warning &
 SERVER_PID=$!
+COOKIES="${TMPDIR}/cookies.txt"
 trap 'kill ${SERVER_PID} 2>/dev/null || true; rm -rf "${TMPDIR}"' EXIT
 
-# Wait for readiness
+# Wait for readiness (/healthz is unauthenticated)
 for _ in $(seq 1 30); do
-  if curl -sf -o /dev/null "${BASE}/calendar"; then break; fi
+  if curl -sf -o /dev/null "${BASE}/healthz"; then break; fi
   sleep 0.5
 done
+
+# The app requires login; set a password and keep the session cookie.
+echo "Configuring login..."
+curl -s -c "${COOKIES}" -b "${COOKIES}" \
+  -d "password=smoketest1&confirm=smoketest1" "${BASE}/setup" >/dev/null
 
 fail=0
 check() {
   local path="$1" expect="${2:-200}"
   local code
-  code=$(curl -s -o /dev/null -w "%{http_code}" "${BASE}${path}")
+  code=$(curl -s -c "${COOKIES}" -b "${COOKIES}" -o /dev/null -w "%{http_code}" "${BASE}${path}")
   if [[ "${code}" == "${expect}" ]]; then
     echo "  ok   ${code}  ${path}"
   else
@@ -48,8 +54,10 @@ check /superbills
 check /settings
 check /about
 
+check /reminders
+
 echo "Checking superbill PDF..."
-CT=$(curl -s -o "${TMPDIR}/out.pdf" -w "%{content_type}" \
+CT=$(curl -s -c "${COOKIES}" -b "${COOKIES}" -o "${TMPDIR}/out.pdf" -w "%{content_type}" \
   "${BASE}/superbills/generate?client_id=1&start=2026-07-01&end=2026-07-31")
 if [[ "${CT}" == application/pdf* ]] && head -c4 "${TMPDIR}/out.pdf" | grep -q "%PDF"; then
   echo "  ok   PDF generated"

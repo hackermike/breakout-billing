@@ -6,3 +6,4 @@ python-multipart==0.0.32
 python-dotenv==1.2.2
 fpdf2==2.7.9
 alembic==1.18.5
+itsdangerous==2.2.0
