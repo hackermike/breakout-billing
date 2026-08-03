@@ -11,6 +11,16 @@ def test_root_redirects_to_calendar(client):
     assert r.headers["location"] == "/calendar"
 
 
+def test_calendar_weeks_are_sunday_first():
+    from app.routers.calendar import month_weeks
+    # Aug 2026: the 1st is a Saturday, the 4th is a Tuesday.
+    weeks = month_weeks(2026, 8)
+    assert weeks[0][6] == 1        # Aug 1 sits in the Saturday (last) column
+    # Aug 4 sits in the Tuesday column (index 2: Sun, Mon, Tue).
+    week_with_4 = next(w for w in weeks if 4 in w)
+    assert week_with_4.index(4) == 2
+
+
 def test_calendar_page_loads(client):
     r = client.get("/calendar")
     assert r.status_code == 200
