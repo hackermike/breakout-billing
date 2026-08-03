@@ -69,8 +69,14 @@ def _parse_dob(dob: str):
 def _apply_couple_fields(client: Client, is_couple: str, partner_first_name: str,
                          partner_last_name: str, patient_is_partner: str) -> None:
     """Set the couple/patient-designation fields from form values. When it isn't a
-    couple, partner data and the patient designation are cleared."""
+    couple, partner data and the patient designation are cleared. A couple must
+    name both people, so the identified-patient name is never left blank."""
     couple = bool(is_couple)
+    partner_first_name = partner_first_name.strip()
+    partner_last_name = partner_last_name.strip()
+    if couple and (not partner_first_name or not partner_last_name):
+        raise HTTPException(
+            status_code=422, detail="Both partner names are required for a couple record")
     client.is_couple = couple
     client.partner_first_name = partner_first_name if couple else None
     client.partner_last_name = partner_last_name if couple else None

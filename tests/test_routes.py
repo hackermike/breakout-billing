@@ -506,3 +506,28 @@ def test_booking_picker_excludes_inactive(client, db, sample_client):
     assert r.status_code == 200
     assert sample_client.last_name in r.text
     assert "Hidden Client" not in r.text
+
+
+def test_cannot_book_inactive_client(client, db):
+    from app.models.client import Client
+    inactive = Client(first_name="Past", last_name="Client", is_active=False)
+    db.add(inactive)
+    db.commit()
+    r = client.post(
+        "/calendar/day/2026-07-06/appointments",
+        data={"client_id": inactive.id, "time": "10:00"},
+    )
+    assert r.status_code == 400
+    assert db.query(Appointment).filter_by(client_id=inactive.id).count() == 0
+
+
+def test_couple_requires_both_partner_names(client, db):
+    from app.models.client import Client
+    r = client.post(
+        "/clients",
+        data={"first_name": "Jamie", "last_name": "Lee", "is_couple": "1",
+              "partner_first_name": "Pat", "partner_last_name": "  "},
+        follow_redirects=False,
+    )
+    assert r.status_code == 422
+    assert db.query(Client).filter_by(last_name="Lee").count() == 0
