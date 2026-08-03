@@ -1,1 +1,0 @@
-/goal Support importing from other systems. Research what's most popular, document how to export, note any expected issues importing or missing features and support import from the top 3 systems with Simple Practice and Better Help as having key feature sets to ultimately support.
