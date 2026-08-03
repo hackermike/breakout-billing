@@ -26,7 +26,6 @@ tool one therapist can run on their own laptop.
 - **Payments** — record payments against any appointment; balances and paid-in-full status update automatically.
 - **Edit & reschedule** — change any appointment, move it to another day (calendar chips update live), or delete it.
 - **Recurring appointments** — book a weekly or biweekly standing slot for up to 52 sessions in one go, and edit or cancel *this and all future* occurrences as a group.
-- **Telehealth links** — attach a video-visit link to any appointment; a "Join video call" button appears in the day view.
 - **Superbills** — generate a professional PDF a client submits to their insurer for out-of-network reimbursement, with your NPI, CPT/ICD-10 codes, fees, and payments.
 - **Reports** — income by month, income by payer, and outstanding balances (accounts receivable).
 - **Email reminders** — opt clients in per person; a "Reminders due" panel sends the next couple of days' appointment reminders (preview-only until you configure SMTP — nothing is delivered and reminders stay due, so none are lost). Setup guide: [docs/EMAIL-SETUP.md](docs/EMAIL-SETUP.md).

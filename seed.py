@@ -134,7 +134,7 @@ def main():
         c.email_consent_at = datetime(2026, 7, 1, 9, 0)
 
     appointments = []
-    for i, (day, hour, minute, cidx, status, cpt) in enumerate(APPT_DATA):
+    for day, hour, minute, cidx, status, cpt in APPT_DATA:
         appt = Appointment(
             client_id=clients[cidx].id,
             datetime=datetime(2026, 7, day, hour, minute),
@@ -142,8 +142,6 @@ def main():
             cpt_code=cpt,
             fee=default_fee(cpt),
             status=status,
-            # Some sessions are telehealth; give them a demo video link.
-            telehealth_url="https://meet.example.com/room/mindfulpath" if i % 4 == 0 else None,
         )
         db.add(appt)
         appointments.append(appt)

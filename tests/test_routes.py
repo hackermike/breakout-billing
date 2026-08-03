@@ -303,38 +303,6 @@ def test_delete_series_future(client, db, sample_client):
     assert db.get(Appointment, id3) is None
 
 
-def test_book_with_telehealth_link(client, db, sample_client):
-    r = client.post(
-        "/calendar/day/2026-07-20/appointments",
-        data={"client_id": sample_client.id, "time": "10:00",
-              "telehealth_url": "https://meet.example.com/room"},
-    )
-    assert r.status_code == 200
-    appt = db.query(Appointment).filter_by(client_id=sample_client.id).first()
-    assert appt.telehealth_url == "https://meet.example.com/room"
-    assert "Join video call" in r.text
-
-
-def test_reject_non_http_telehealth_url(client, sample_client):
-    r = client.post(
-        "/calendar/day/2026-07-20/appointments",
-        data={"client_id": sample_client.id, "time": "10:00",
-              "telehealth_url": "javascript:alert(1)"},
-    )
-    assert r.status_code == 400
-
-
-def test_edit_sets_telehealth_url(client, db, sample_appointment):
-    r = client.post(
-        f"/appointments/{sample_appointment.id}/edit",
-        data={"client_id": sample_appointment.client_id, "date": "2026-07-15",
-              "time": "10:00", "telehealth_url": "https://zoom.us/j/123"},
-    )
-    assert r.status_code == 200
-    db.refresh(sample_appointment)
-    assert sample_appointment.telehealth_url == "https://zoom.us/j/123"
-
-
 def test_edit_form_prefilled(client, sample_appointment):
     r = client.get(f"/appointments/{sample_appointment.id}/edit")
     assert r.status_code == 200

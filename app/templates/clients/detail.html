@@ -147,7 +147,6 @@
                 <a href="/calendar?year={{ appt.datetime.year }}&month={{ appt.datetime.month }}"
                    class="hover:underline">{{ appt.datetime.strftime('%m/%d/%Y') }}</a>
                 <span class="text-gray-400">{{ appt.datetime.strftime('%-I:%M %p') }}</span>
-                {% if appt.telehealth_url %}<span title="Telehealth">🎥</span>{% endif %}
               </td>
               <td class="px-3 py-2 font-mono text-xs">{{ appt.cpt_code }}</td>
               <td class="px-3 py-2 text-right">{{ money(appt.fee) }}</td>

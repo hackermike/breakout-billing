@@ -22,3 +22,9 @@ backups/
 
 # Throwaway browser-driver / debug scripts (write with editor tools, run with node)
 scripts/dev/
+
+# Personal working notes (never commit)
+/goal*.txt
+/goals.txt
+/unfinished.xt
+/answers_*.txt

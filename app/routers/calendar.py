@@ -109,7 +109,6 @@ async def create_appointment(
     cpt_code: str = Form("90837"),
     fee: float = Form(None),
     status: str = Form("scheduled"),
-    telehealth_url: str = Form(""),
     repeat: str = Form("none"),
     occurrences: int = Form(1),
     db: Session = Depends(get_db),
@@ -119,7 +118,6 @@ async def create_appointment(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid date or time") from exc
     _validate_client_and_fee(db, client_id, fee)
-    _validate_telehealth_url(telehealth_url)
 
     # A weekly/biweekly standing appointment books several dates at once, sharing
     # one series_id so it can be edited or cancelled as a group later.
@@ -137,7 +135,6 @@ async def create_appointment(
                 cpt_code=cpt_code,
                 fee=resolved_fee,
                 status=status,
-                telehealth_url=telehealth_url or None,
                 series_id=series_id,
             )
         )
@@ -167,14 +164,6 @@ def _validate_client_and_fee(db: Session, client_id: int, fee: float | None) -> 
         raise HTTPException(status_code=400, detail="Unknown client")
     if fee is not None and fee < 0:
         raise HTTPException(status_code=400, detail="Fee cannot be negative")
-
-
-def _validate_telehealth_url(url: str) -> None:
-    # Only http(s) links are rendered, so reject other schemes (e.g. javascript:).
-    if url and not url.startswith(("http://", "https://")):
-        raise HTTPException(
-            status_code=400, detail="Telehealth link must start with http:// or https://"
-        )
 
 
 def _series_targets(db: Session, appt: Appointment, scope: str) -> list[Appointment]:
@@ -230,7 +219,6 @@ async def update_appointment(
     cpt_code: str = Form("90837"),
     fee: float = Form(None),
     status: str = Form("scheduled"),
-    telehealth_url: str = Form(""),
     scope: str = Form("this"),
     db: Session = Depends(get_db),
 ):
@@ -240,7 +228,6 @@ async def update_appointment(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid date or time") from exc
     _validate_client_and_fee(db, client_id, fee)
-    _validate_telehealth_url(telehealth_url)
 
     apply_future = scope == "future" and bool(appt.series_id)
     targets = _series_targets(db, appt, scope)
@@ -259,7 +246,6 @@ async def update_appointment(
         if fee is not None:
             target.fee = fee
         target.status = status
-        target.telehealth_url = telehealth_url or None
     db.commit()
 
     affected |= {t.datetime.strftime("%Y-%m-%d") for t in targets}
