@@ -20,6 +20,51 @@
       </label>
     </div>
 
+    <label class="block">
+      <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Nickname / preferred name</span>
+      <input type="text" name="nickname" value="{{ (c.nickname or '') if c else '' }}"
+             class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
+    </label>
+
+    {# Couple: one record, two people. Only the identified patient appears on superbills. #}
+    <div class="rounded-md border border-gray-200 dark:border-slate-700 p-3 space-y-3">
+      <label class="flex items-center gap-2">
+        <input type="checkbox" name="is_couple" value="1"
+               onchange="document.getElementById('couple-fields').classList.toggle('hidden', !this.checked)"
+               {{ 'checked' if c and c.is_couple }}
+               class="rounded border-gray-300 dark:border-slate-600 text-teal-600" />
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">This is a couple (two people on one record)</span>
+      </label>
+      <div id="couple-fields" class="space-y-3 {{ '' if c and c.is_couple else 'hidden' }}">
+        <div class="flex gap-3">
+          <label class="block flex-1">
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Partner first name</span>
+            <input type="text" name="partner_first_name" value="{{ (c.partner_first_name or '') if c else '' }}"
+                   class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
+          </label>
+          <label class="block flex-1">
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Partner last name</span>
+            <input type="text" name="partner_last_name" value="{{ (c.partner_last_name or '') if c else '' }}"
+                   class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800" />
+          </label>
+        </div>
+        <label class="block">
+          <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Identified patient (named on superbills)</span>
+          <select name="patient_is_partner"
+                  class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800">
+            <option value="" {{ 'selected' if not (c and c.patient_is_partner) }}>Primary (first person)</option>
+            <option value="1" {{ 'selected' if c and c.patient_is_partner }}>Partner (second person)</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <label class="block">
+      <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Mailing address</span>
+      <textarea name="mailing_address" rows="2"
+                class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-800">{{ (c.mailing_address or '') if c else '' }}</textarea>
+    </label>
+
     <div class="flex gap-3">
       <label class="block flex-1">
         <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Date of birth</span>
@@ -71,6 +116,14 @@
              class="rounded border-gray-300 dark:border-slate-600 text-teal-600" />
       <span class="text-sm text-gray-600 dark:text-gray-300">
         Send email appointment reminders (client has consented)
+      </span>
+    </label>
+    {% else %}
+    <label class="flex items-center gap-2 pt-1">
+      <input type="checkbox" name="is_active" value="1" {{ 'checked' if c.active }}
+             class="rounded border-gray-300 dark:border-slate-600 text-teal-600" />
+      <span class="text-sm text-gray-600 dark:text-gray-300">
+        Active client (uncheck to hide from lists and booking)
       </span>
     </label>
     {% endif %}

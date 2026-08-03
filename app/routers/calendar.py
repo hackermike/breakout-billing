@@ -116,7 +116,13 @@ async def day_detail(request: Request, date_str: str, db: Session = Depends(get_
 
 @router.get("/calendar/day/{date_str}/new")
 async def new_appointment_form(request: Request, date_str: str, db: Session = Depends(get_db)):
-    clients = db.query(Client).order_by(Client.last_name).all()
+    # Only active clients are bookable; inactive ones stay editable in history.
+    clients = (
+        db.query(Client)
+        .filter(Client.is_active.isnot(False))
+        .order_by(Client.last_name)
+        .all()
+    )
     return templates.TemplateResponse(
         request,
         "partials/appointment_form.html",

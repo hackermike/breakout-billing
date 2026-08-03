@@ -10,12 +10,27 @@
   <!-- Header -->
   <div class="flex items-start justify-between mt-2 mb-6">
     <div>
-      <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100">{{ client.full_name }}</h2>
+      <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100">
+        {{ client.full_name }}
+        {% if client.nickname %}<span class="text-gray-400 font-normal">("{{ client.nickname }}")</span>{% endif %}
+        {% if not client.active %}
+        <span class="align-middle ml-1 px-2 py-0.5 rounded text-xs font-medium uppercase tracking-wide
+                     bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-gray-400">Inactive</span>
+        {% endif %}
+      </h2>
+      {% if client.is_couple %}
+      <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        Couple · identified patient: <span class="font-medium text-gray-700 dark:text-gray-200">{{ client.patient_name }}</span>
+      </div>
+      {% endif %}
       <div class="text-sm text-gray-500 dark:text-gray-400 mt-1 flex flex-wrap gap-x-4 gap-y-1">
         {% if client.dob %}<span>DOB {{ client.dob.strftime('%m/%d/%Y') }}{% if age is not none %} · {{ age }} yrs{% endif %}</span>{% endif %}
         {% if client.email %}<a href="mailto:{{ client.email }}" class="text-teal-600 dark:text-teal-400 hover:underline">{{ client.email }}</a>{% endif %}
         {% if client.phone %}<a href="tel:{{ client.phone }}" class="hover:underline">{{ client.phone }}</a>{% endif %}
       </div>
+      {% if client.mailing_address %}
+      <div class="text-sm text-gray-500 dark:text-gray-400 mt-1 whitespace-pre-line">{{ client.mailing_address }}</div>
+      {% endif %}
     </div>
     <a href="/clients/{{ client.id }}/edit"
        class="text-sm px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">

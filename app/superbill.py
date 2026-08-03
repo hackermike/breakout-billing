@@ -64,7 +64,8 @@ def build_superbill_pdf(
     # Client block
     pdf.set_font("Helvetica", "B", 11)
     pdf.cell(0, 6, "Client", new_x="LMARGIN", new_y="NEXT")
-    _line(pdf, "Name:", client.full_name)
+    # A couple is one record; only the identified patient is named on the superbill.
+    _line(pdf, "Name:", client.patient_name)
     _line(pdf, "DOB:", client.dob.strftime("%m/%d/%Y") if client.dob else "")
     _line(pdf, "Insurance:", client.insurance_company or "")
     _line(pdf, "Member ID:", client.insurance_id or "")

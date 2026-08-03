@@ -418,3 +418,91 @@ def test_superbill_pdf(client, sample_appointment):
 def test_superbill_unknown_client_404(client):
     r = client.get("/superbills/generate?client_id=9999&start=2026-07-01&end=2026-07-31")
     assert r.status_code == 404
+
+
+def test_couple_names_and_patient_designation(db):
+    from app.models.client import Client
+    couple = Client(first_name="Alex", last_name="Rivera",
+                    is_couple=True, partner_first_name="Sam", partner_last_name="Rivera")
+    # Default: primary is the identified patient.
+    assert couple.full_name == "Alex Rivera & Sam Rivera"
+    assert couple.patient_name == "Alex Rivera"
+    # Designate the partner as the patient.
+    couple.patient_is_partner = True
+    assert couple.patient_name == "Sam Rivera"
+
+
+def test_display_name_includes_nickname(db):
+    from app.models.client import Client
+    c = Client(first_name="Robert", last_name="Doe", nickname="Bob")
+    assert c.display_name == 'Robert Doe ("Bob")'
+    c.nickname = None
+    assert c.display_name == "Robert Doe"
+
+
+def test_create_couple_client(client, db):
+    from app.models.client import Client
+    r = client.post(
+        "/clients",
+        data={"first_name": "Jamie", "last_name": "Lee", "is_couple": "1",
+              "partner_first_name": "Pat", "partner_last_name": "Lee",
+              "patient_is_partner": "1"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    c = db.query(Client).filter_by(last_name="Lee").first()
+    assert c.is_couple is True
+    assert c.partner_first_name == "Pat"
+    assert c.patient_is_partner is True
+    assert c.patient_name == "Pat Lee"
+
+
+def test_uncheck_couple_clears_partner(client, db, sample_client):
+    sample_client.is_couple = True
+    sample_client.partner_first_name = "Ex"
+    sample_client.partner_last_name = "Partner"
+    db.commit()
+    client.post(
+        f"/clients/{sample_client.id}/edit",
+        data={"first_name": sample_client.first_name, "last_name": sample_client.last_name,
+              "is_active": "1"},
+        follow_redirects=False,
+    )
+    db.refresh(sample_client)
+    assert sample_client.is_couple is False
+    assert sample_client.partner_first_name is None
+
+
+def test_inactive_clients_hidden_by_default(client, db, sample_client):
+    from app.models.client import Client
+    inactive = Client(first_name="Gone", last_name="Away", is_active=False)
+    db.add(inactive)
+    db.commit()
+    default = client.get("/clients")
+    assert "Away" not in default.text
+    assert "Show inactive" in default.text
+    all_shown = client.get("/clients?show_all=1")
+    assert "Away" in all_shown.text
+    assert "Inactive" in all_shown.text
+
+
+def test_edit_can_deactivate_client(client, db, sample_client):
+    # Omitting the is_active checkbox marks the client inactive.
+    client.post(
+        f"/clients/{sample_client.id}/edit",
+        data={"first_name": sample_client.first_name, "last_name": sample_client.last_name},
+        follow_redirects=False,
+    )
+    db.refresh(sample_client)
+    assert sample_client.is_active is False
+
+
+def test_booking_picker_excludes_inactive(client, db, sample_client):
+    from app.models.client import Client
+    inactive = Client(first_name="Hidden", last_name="Client", is_active=False)
+    db.add(inactive)
+    db.commit()
+    r = client.get("/calendar/day/2026-07-06/new")
+    assert r.status_code == 200
+    assert sample_client.last_name in r.text
+    assert "Hidden Client" not in r.text
