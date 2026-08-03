@@ -19,6 +19,12 @@ REPEAT_INTERVALS = {"weekly": 7, "biweekly": 14}
 MAX_OCCURRENCES = 52
 
 
+def month_weeks(year: int, month: int) -> list[list[int]]:
+    """Weeks of the month as Sunday-first rows (0 marks a day outside the month),
+    matching the Sun..Sat column headers."""
+    return cal_module.Calendar(firstweekday=6).monthdayscalendar(year, month)
+
+
 @router.get("/calendar")
 async def calendar_view(
     request: Request,
@@ -30,7 +36,7 @@ async def calendar_view(
     year = year or now.year
     month = month or now.month
 
-    weeks = cal_module.monthcalendar(year, month)
+    weeks = month_weeks(year, month)
     _, last_day = cal_module.monthrange(year, month)
 
     appointments = (
