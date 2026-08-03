@@ -83,8 +83,7 @@ tests/               # pytest unit + integration; tests/e2e/ Playwright
 Provider (one row)     Client ──1:N──▶ Appointment ──1:N──▶ Payment
   npi, credentials,      demographics,   datetime, cpt_code,   amount, date,
   tax_id, address...     insurance, dx,  fee, status,          method, payer
-                         reminder prefs  telehealth_url,
-                                         series_id
+                         reminder prefs  series_id
                                              │
                                              └─1:N──▶ NotificationLog
                                                         channel, lead_slot,

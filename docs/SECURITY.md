@@ -15,8 +15,6 @@ This document summarizes a full review of the codebase.
 - **No stored/reflected XSS** — Jinja2 autoescaping is on, with no `| safe`,
   `Markup`, or disabled autoescaping. User-supplied values (names, diagnosis,
   uploaded filename) render escaped.
-- **Telehealth links are validated** to `http(s)://` on input (rejecting
-  `javascript:` and other schemes) and rendered with `rel="noopener noreferrer"`.
 - **No dangerous sinks** — no `eval`/`exec`/`subprocess`/`os.system`/`pickle`/
   `yaml.load`.
 - **No secrets in the repo** — SMTP credentials come from environment variables;

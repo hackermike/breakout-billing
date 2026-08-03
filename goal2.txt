@@ -1,0 +1,1 @@
+/goal I feel like SMS notifications would be important so I'd like you to research commonly used options and if there are charges or limits. Make a plan for what we should support. I think each person should get options for SMS and/or email notifications so we should also figure out a standard way to support email with this goal. Again, mainly do research and plan.

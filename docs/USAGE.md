@@ -26,8 +26,7 @@ auto-fills from the CPT code but you can override it. The new appointment appear
 on the calendar immediately.
 
 Statuses: **scheduled**, **completed**, **cancelled**, **no-show** — each shows a
-distinct color on the calendar. Add an optional **telehealth link** and a
-"Join video call" button appears in the day view.
+distinct color on the calendar.
 
 **Recurring:** choose a weekly or biweekly repeat and a number of occurrences to
 book a standing slot in one go.

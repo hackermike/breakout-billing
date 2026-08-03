@@ -15,7 +15,6 @@ class Appointment(Base):
     cpt_code = Column(String, default="90837")
     fee = Column(Float, default=0.0)
     status = Column(String, default="scheduled")
-    telehealth_url = Column(String)
     series_id = Column(String, index=True)  # shared by a recurring series; NULL if standalone
     notes = Column(String)
 
