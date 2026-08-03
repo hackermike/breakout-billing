@@ -188,7 +188,7 @@ def test_book_weekly_recurring(client, db, sample_client):
     r = client.post(
         "/calendar/day/2026-07-06/appointments",
         data={"client_id": sample_client.id, "time": "10:00",
-              "repeat": "weekly", "occurrences": "4"},
+              "repeat_unit": "weeks", "repeat_interval": "1", "occurrences": "4"},
     )
     assert r.status_code == 200
     appts = (
@@ -203,12 +203,12 @@ def test_book_weekly_recurring(client, db, sample_client):
     assert appts[1].datetime - appts[0].datetime == timedelta(days=7)
 
 
-def test_biweekly_recurring_interval(client, db, sample_client):
+def test_every_two_weeks_interval(client, db, sample_client):
     from datetime import timedelta
     client.post(
         "/calendar/day/2026-07-06/appointments",
         data={"client_id": sample_client.id, "time": "10:00",
-              "repeat": "biweekly", "occurrences": "3"},
+              "repeat_unit": "weeks", "repeat_interval": "2", "occurrences": "3"},
     )
     appts = (
         db.query(Appointment).filter_by(client_id=sample_client.id)
@@ -218,20 +218,50 @@ def test_biweekly_recurring_interval(client, db, sample_client):
     assert appts[1].datetime - appts[0].datetime == timedelta(days=14)
 
 
+def test_monthly_recurring_advances_calendar_months(client, db, sample_client):
+    client.post(
+        "/calendar/day/2026-01-31/appointments",
+        data={"client_id": sample_client.id, "time": "10:00",
+              "repeat_unit": "months", "repeat_interval": "1", "occurrences": "3"},
+    )
+    appts = (
+        db.query(Appointment).filter_by(client_id=sample_client.id)
+        .order_by(Appointment.datetime).all()
+    )
+    dates = [a.datetime.strftime("%Y-%m-%d") for a in appts]
+    # Day clamps to each month's last day (Feb 28), not a rolling 30/31 days.
+    assert dates == ["2026-01-31", "2026-02-28", "2026-03-31"]
+
+
 def test_recurring_occurrences_capped(client, db, sample_client):
     client.post(
         "/calendar/day/2026-07-06/appointments",
         data={"client_id": sample_client.id, "time": "10:00",
-              "repeat": "weekly", "occurrences": "999"},
+              "repeat_unit": "weeks", "repeat_interval": "1", "occurrences": "999"},
     )
     assert db.query(Appointment).filter_by(client_id=sample_client.id).count() == 52
+
+
+def test_interval_capped(client, db, sample_client):
+    from datetime import timedelta
+    client.post(
+        "/calendar/day/2026-07-06/appointments",
+        data={"client_id": sample_client.id, "time": "10:00",
+              "repeat_unit": "weeks", "repeat_interval": "99", "occurrences": "2"},
+    )
+    appts = (
+        db.query(Appointment).filter_by(client_id=sample_client.id)
+        .order_by(Appointment.datetime).all()
+    )
+    # An out-of-range interval clamps to the 5-week maximum.
+    assert appts[1].datetime - appts[0].datetime == timedelta(weeks=5)
 
 
 def test_no_repeat_ignores_occurrences(client, db, sample_client):
     client.post(
         "/calendar/day/2026-07-06/appointments",
         data={"client_id": sample_client.id, "time": "10:00",
-              "repeat": "none", "occurrences": "5"},
+              "repeat_unit": "none", "occurrences": "5"},
     )
     assert db.query(Appointment).filter_by(client_id=sample_client.id).count() == 1
 
@@ -240,7 +270,7 @@ def test_recurring_series_shares_series_id(client, db, sample_client):
     client.post(
         "/calendar/day/2026-07-06/appointments",
         data={"client_id": sample_client.id, "time": "10:00",
-              "repeat": "weekly", "occurrences": "3"},
+              "repeat_unit": "weeks", "repeat_interval": "1", "occurrences": "3"},
     )
     appts = db.query(Appointment).filter_by(client_id=sample_client.id).all()
     series_ids = {a.series_id for a in appts}

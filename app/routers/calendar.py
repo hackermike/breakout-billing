@@ -14,8 +14,9 @@ from app.templates_config import templates
 
 router = APIRouter()
 
-# Recurrence interval (days) for a standing weekly/biweekly appointment.
-REPEAT_INTERVALS = {"weekly": 7, "biweekly": 14}
+# A standing appointment repeats every N weeks or N months; N is capped for sanity.
+REPEAT_UNITS = ("weeks", "months")
+MAX_INTERVAL = 5
 MAX_OCCURRENCES = 52
 
 
@@ -23,6 +24,30 @@ def month_weeks(year: int, month: int) -> list[list[int]]:
     """Weeks of the month as Sunday-first rows (0 marks a day outside the month),
     matching the Sun..Sat column headers."""
     return cal_module.Calendar(firstweekday=6).monthdayscalendar(year, month)
+
+
+def add_months(dt: datetime, months: int) -> datetime:
+    """Advance a datetime by whole calendar months, clamping the day to the last
+    day of the target month (e.g. Jan 31 + 1 month -> Feb 28)."""
+    index = dt.month - 1 + months
+    year = dt.year + index // 12
+    month = index % 12 + 1
+    day = min(dt.day, cal_module.monthrange(year, month)[1])
+    return dt.replace(year=year, month=month, day=day)
+
+
+def recurrence_dates(start: datetime, repeat_unit: str, repeat_interval: int,
+                     occurrences: int) -> list[datetime]:
+    """The datetimes a booking creates. A one-off (or an unknown unit) yields just
+    the start; a repeating booking yields `occurrences` dates spaced `interval`
+    weeks or months apart, capped at MAX_OCCURRENCES."""
+    if repeat_unit not in REPEAT_UNITS:
+        return [start]
+    step = max(1, min(repeat_interval, MAX_INTERVAL))
+    count = max(1, min(occurrences, MAX_OCCURRENCES))
+    if repeat_unit == "weeks":
+        return [start + timedelta(weeks=step * k) for k in range(count)]
+    return [add_months(start, step * k) for k in range(count)]
 
 
 @router.get("/calendar")
@@ -109,7 +134,8 @@ async def create_appointment(
     cpt_code: str = Form("90837"),
     fee: float = Form(None),
     status: str = Form("scheduled"),
-    repeat: str = Form("none"),
+    repeat_unit: str = Form("none"),
+    repeat_interval: int = Form(1),
     occurrences: int = Form(1),
     db: Session = Depends(get_db),
 ):
@@ -119,13 +145,11 @@ async def create_appointment(
         raise HTTPException(status_code=400, detail="Invalid date or time") from exc
     _validate_client_and_fee(db, client_id, fee)
 
-    # A weekly/biweekly standing appointment books several dates at once, sharing
-    # one series_id so it can be edited or cancelled as a group later.
-    interval = REPEAT_INTERVALS.get(repeat)
-    count = max(1, min(occurrences, MAX_OCCURRENCES)) if interval else 1
-    series_id = uuid4().hex if interval and count > 1 else None
+    # A standing appointment books several dates at once (every N weeks or months),
+    # sharing one series_id so it can be edited or cancelled as a group later.
+    occurrence_dts = recurrence_dates(dt, repeat_unit, repeat_interval, occurrences)
+    series_id = uuid4().hex if len(occurrence_dts) > 1 else None
     resolved_fee = fee if fee is not None else cpt.default_fee(cpt_code)
-    occurrence_dts = [dt + timedelta(days=interval * k) if interval else dt for k in range(count)]
     for occurrence_dt in occurrence_dts:
         db.add(
             Appointment(
