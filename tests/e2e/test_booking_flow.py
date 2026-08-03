@@ -24,6 +24,10 @@ def test_book_and_pay(live_server):
             page.click('button:has-text("Set password")')
             page.wait_for_url("**/calendar")
 
+        # The demo data is July 2026; go there explicitly (the calendar otherwise
+        # defaults to the current month).
+        page.goto(f"{live_server}/calendar?year=2026&month=7")
+
         # Open an empty day and add an appointment.
         page.click('div[hx-get="/calendar/day/2026-07-05"]')
         page.wait_for_selector("text=+ Add appointment")
