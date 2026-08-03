@@ -23,12 +23,26 @@ def _age(dob: date | None) -> int | None:
 
 
 @router.get("/clients")
-async def list_clients(request: Request, db: Session = Depends(get_db)):
-    clients = db.query(Client).order_by(Client.last_name).all()
+async def list_clients(
+    request: Request, show_all: bool = False, db: Session = Depends(get_db)
+):
+    query = db.query(Client).order_by(Client.last_name)
+    if not show_all:
+        # Hide inactive clients by default; NULL (pre-existing rows) counts as active.
+        query = query.filter(Client.is_active.isnot(False))
+    clients = query.all()
+    inactive_count = (
+        db.query(Client).filter(Client.is_active.is_(False)).count()
+    )
     return templates.TemplateResponse(
         request,
         "clients/list.html",
-        {"active_nav": "clients", "clients": clients},
+        {
+            "active_nav": "clients",
+            "clients": clients,
+            "show_all": show_all,
+            "inactive_count": inactive_count,
+        },
     )
 
 
@@ -52,10 +66,29 @@ def _parse_dob(dob: str):
         raise HTTPException(status_code=422, detail="Date of birth must use YYYY-MM-DD") from exc
 
 
+def _apply_couple_fields(client: Client, is_couple: str, partner_first_name: str,
+                         partner_last_name: str, patient_is_partner: str) -> None:
+    """Set the couple/patient-designation fields from form values. When it isn't a
+    couple, partner data and the patient designation are cleared. A couple must
+    name both people, so the identified-patient name is never left blank."""
+    couple = bool(is_couple)
+    partner_first_name = partner_first_name.strip()
+    partner_last_name = partner_last_name.strip()
+    if couple and (not partner_first_name or not partner_last_name):
+        raise HTTPException(
+            status_code=422, detail="Both partner names are required for a couple record")
+    client.is_couple = couple
+    client.partner_first_name = partner_first_name if couple else None
+    client.partner_last_name = partner_last_name if couple else None
+    client.patient_is_partner = bool(patient_is_partner) if couple else False
+
+
 @router.post("/clients")
 async def create_client(
     first_name: str = Form(...),
     last_name: str = Form(...),
+    nickname: str = Form(""),
+    mailing_address: str = Form(""),
     dob: str = Form(""),
     email: str = Form(""),
     phone: str = Form(""),
@@ -64,6 +97,10 @@ async def create_client(
     group_number: str = Form(""),
     diagnosis_codes: str = Form(""),
     email_reminders: str = Form(""),
+    is_couple: str = Form(""),
+    partner_first_name: str = Form(""),
+    partner_last_name: str = Form(""),
+    patient_is_partner: str = Form(""),
     db: Session = Depends(get_db),
 ):
     parsed_dob = _parse_dob(dob)
@@ -71,6 +108,8 @@ async def create_client(
     client = Client(
         first_name=first_name,
         last_name=last_name,
+        nickname=nickname or None,
+        mailing_address=mailing_address or None,
         dob=parsed_dob,
         email=email,
         phone=phone,
@@ -78,9 +117,12 @@ async def create_client(
         insurance_id=insurance_id,
         group_number=group_number,
         diagnosis_codes=diagnosis_codes,
+        is_active=True,
         reminder_channel="email" if opted_in else "none",
         email_consent_at=datetime.now() if opted_in else None,
     )
+    _apply_couple_fields(client, is_couple, partner_first_name,
+                         partner_last_name, patient_is_partner)
     db.add(client)
     db.commit()
     return RedirectResponse(url="/clients", status_code=303)
@@ -101,6 +143,8 @@ async def update_client(
     client_id: int,
     first_name: str = Form(...),
     last_name: str = Form(...),
+    nickname: str = Form(""),
+    mailing_address: str = Form(""),
     dob: str = Form(""),
     email: str = Form(""),
     phone: str = Form(""),
@@ -108,6 +152,11 @@ async def update_client(
     insurance_id: str = Form(""),
     group_number: str = Form(""),
     diagnosis_codes: str = Form(""),
+    is_active: str = Form(""),
+    is_couple: str = Form(""),
+    partner_first_name: str = Form(""),
+    partner_last_name: str = Form(""),
+    patient_is_partner: str = Form(""),
     db: Session = Depends(get_db),
 ):
     client = db.get(Client, client_id)
@@ -117,6 +166,8 @@ async def update_client(
     # so the permanent-opt-out invariant is preserved.
     client.first_name = first_name
     client.last_name = last_name
+    client.nickname = nickname or None
+    client.mailing_address = mailing_address or None
     client.dob = _parse_dob(dob)
     client.email = email
     client.phone = phone
@@ -124,6 +175,9 @@ async def update_client(
     client.insurance_id = insurance_id
     client.group_number = group_number
     client.diagnosis_codes = diagnosis_codes
+    client.is_active = bool(is_active)
+    _apply_couple_fields(client, is_couple, partner_first_name,
+                         partner_last_name, patient_is_partner)
     db.commit()
     return RedirectResponse(url=f"/clients/{client_id}", status_code=303)
 

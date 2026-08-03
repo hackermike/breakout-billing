@@ -116,7 +116,13 @@ async def day_detail(request: Request, date_str: str, db: Session = Depends(get_
 
 @router.get("/calendar/day/{date_str}/new")
 async def new_appointment_form(request: Request, date_str: str, db: Session = Depends(get_db)):
-    clients = db.query(Client).order_by(Client.last_name).all()
+    # Only active clients are bookable; inactive ones stay editable in history.
+    clients = (
+        db.query(Client)
+        .filter(Client.is_active.isnot(False))
+        .order_by(Client.last_name)
+        .all()
+    )
     return templates.TemplateResponse(
         request,
         "partials/appointment_form.html",
@@ -143,7 +149,7 @@ async def create_appointment(
         dt = datetime.strptime(f"{date_str} {time}", "%Y-%m-%d %H:%M")
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid date or time") from exc
-    _validate_client_and_fee(db, client_id, fee)
+    _validate_client_and_fee(db, client_id, fee, require_active=True)
 
     # A standing appointment books several dates at once (every N weeks or months),
     # sharing one series_id so it can be edited or cancelled as a group later.
@@ -183,9 +189,16 @@ def _get_appointment(db: Session, appointment_id: int) -> Appointment:
     return appt
 
 
-def _validate_client_and_fee(db: Session, client_id: int, fee: float | None) -> None:
-    if db.get(Client, client_id) is None:
+def _validate_client_and_fee(
+    db: Session, client_id: int, fee: float | None, *, require_active: bool = False
+) -> None:
+    client = db.get(Client, client_id)
+    if client is None:
         raise HTTPException(status_code=400, detail="Unknown client")
+    # New appointments can only be booked for active clients; existing appointments
+    # (edits) keep working even after a client is deactivated.
+    if require_active and client.is_active is False:
+        raise HTTPException(status_code=400, detail="Client is inactive")
     if fee is not None and fee < 0:
         raise HTTPException(status_code=400, detail="Fee cannot be negative")
 
