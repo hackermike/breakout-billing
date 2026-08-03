@@ -12,10 +12,12 @@
   </p>
 
   <!-- Summary cards -->
-  <div class="grid grid-cols-3 gap-4 mb-8">
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
     {% set cards = [
       ('Charged', summary.charged, 'text-gray-800 dark:text-gray-100'),
       ('Collected', summary.collected, 'text-green-600 dark:text-green-400'),
+      ('Card fees', summary.servicer_fees, 'text-amber-600 dark:text-amber-400'),
+      ('Net collected', summary.net_collected, 'text-green-700 dark:text-green-300'),
       ('Outstanding (A/R)', summary.outstanding, 'text-red-600 dark:text-red-400'),
     ] %}
     {% for label, value, color in cards %}
@@ -37,6 +39,8 @@
               <th class="text-left px-3 py-2 font-medium">Month</th>
               <th class="text-right px-3 py-2 font-medium">Charged</th>
               <th class="text-right px-3 py-2 font-medium">Collected</th>
+              <th class="text-right px-3 py-2 font-medium">Card fees</th>
+              <th class="text-right px-3 py-2 font-medium">Net</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
@@ -45,9 +49,11 @@
               <td class="px-3 py-2">{{ row.month }}</td>
               <td class="px-3 py-2 text-right">{{ money(row.charged) }}</td>
               <td class="px-3 py-2 text-right text-green-600 dark:text-green-400">{{ money(row.collected) }}</td>
+              <td class="px-3 py-2 text-right text-amber-600 dark:text-amber-400">{{ money(row.servicer_fees) }}</td>
+              <td class="px-3 py-2 text-right">{{ money(row.net_collected) }}</td>
             </tr>
             {% else %}
-            <tr><td colspan="3" class="px-3 py-6 text-center text-gray-400">No data yet</td></tr>
+            <tr><td colspan="5" class="px-3 py-6 text-center text-gray-400">No data yet</td></tr>
             {% endfor %}
           </tbody>
         </table>

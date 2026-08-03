@@ -40,9 +40,15 @@ occurrences.
 ## 4. Record payments
 
 Open a day, find the appointment, and click **+ Record payment**. Enter the
-amount, date, method (card/cash/check/insurance), and whether the payer is the
-client (self-pay) or insurance. The appointment then shows **paid** and any
-**balance due**.
+amount, date, method (credit card / cash / check / insurance), and whether the
+payer is the client (self-pay) or insurance. For a credit-card payment the
+**card processor fee** autofills from your default (set in Settings) and is
+editable; income reports show it as a deduction. The appointment then shows
+**paid** and any **balance due** (or a **credit** if the client overpaid).
+
+Tick **This is a refund** to record money paid back to a client. Use
+**Write off** on an appointment to waive its fee so it no longer counts toward
+what the client owes.
 
 ## 5. Generate a superbill
 

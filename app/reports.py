@@ -12,7 +12,12 @@ from collections import defaultdict
 
 from sqlalchemy.orm import Session, joinedload
 
-from app.finances import CHARGEABLE_STATUS, balance_on_services, total_collected
+from app.finances import (
+    appt_charged,
+    balance_on_services,
+    total_collected,
+    total_servicer_fees,
+)
 from app.models.appointment import Appointment
 
 
@@ -26,9 +31,13 @@ def _appointments(db: Session) -> list[Appointment]:
 
 def _summary(appts: list[Appointment]) -> dict:
     services = balance_on_services(appts)
+    collected = total_collected(appts)
+    fees = total_servicer_fees(appts)
     return {
         "charged": services["charged"],
-        "collected": total_collected(appts),   # all cash received (cash-flow view)
+        "collected": collected,   # all cash received, net of refunds (cash-flow view)
+        "servicer_fees": fees,    # card-processor fees paid out
+        "net_collected": round(collected - fees, 2),  # what actually reaches the practice
         "outstanding": services["outstanding"],  # A/R, completed-scoped (matches _outstanding)
     }
 
@@ -36,15 +45,25 @@ def _summary(appts: list[Appointment]) -> dict:
 def _by_month(appts: list[Appointment]) -> list[dict]:
     charged = defaultdict(float)
     collected = defaultdict(float)
+    fees = defaultdict(float)
     for a in appts:
-        if a.status == CHARGEABLE_STATUS:
-            charged[a.datetime.strftime("%Y-%m")] += a.fee or 0
+        billed = appt_charged(a)
+        if billed:
+            charged[a.datetime.strftime("%Y-%m")] += billed
         for p in a.payments:
-            collected[p.payment_date.strftime("%Y-%m")] += p.amount
+            month = p.payment_date.strftime("%Y-%m")
+            collected[month] += p.signed_amount
+            fees[month] += p.servicer_fee or 0
 
     months = sorted(set(charged) | set(collected))
     return [
-        {"month": m, "charged": round(charged[m], 2), "collected": round(collected[m], 2)}
+        {
+            "month": m,
+            "charged": round(charged[m], 2),
+            "collected": round(collected[m], 2),
+            "servicer_fees": round(fees[m], 2),
+            "net_collected": round(collected[m] - fees[m], 2),
+        }
         for m in months
     ]
 
@@ -53,7 +72,7 @@ def _by_payer(appts: list[Appointment]) -> list[dict]:
     totals = defaultdict(float)
     for a in appts:
         for p in a.payments:
-            totals[p.payer or "unknown"] += p.amount
+            totals[p.payer or "unknown"] += p.signed_amount
     return [
         {"payer": payer, "total": round(total, 2)}
         for payer, total in sorted(totals.items(), key=lambda kv: -kv[1])

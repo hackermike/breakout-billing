@@ -531,3 +531,76 @@ def test_couple_requires_both_partner_names(client, db):
     )
     assert r.status_code == 422
     assert db.query(Client).filter_by(last_name="Lee").count() == 0
+
+
+def test_credit_payment_records_servicer_fee(client, db, sample_appointment):
+    client.post(
+        f"/appointments/{sample_appointment.id}/payments",
+        data={"amount": "100", "payment_date": "2026-07-15",
+              "payment_method": "credit", "servicer_fee_percent": "3"},
+    )
+    p = db.query(Payment).filter_by(appointment_id=sample_appointment.id).first()
+    assert p.payment_method == "credit"
+    assert p.servicer_fee == 3.0  # 3% of 100
+
+
+def test_cash_payment_has_no_servicer_fee(client, db, sample_appointment):
+    client.post(
+        f"/appointments/{sample_appointment.id}/payments",
+        data={"amount": "100", "payment_date": "2026-07-15",
+              "payment_method": "cash", "servicer_fee_percent": "3"},
+    )
+    p = db.query(Payment).filter_by(appointment_id=sample_appointment.id).first()
+    assert p.servicer_fee == 0.0
+
+
+def test_refund_payment_recorded(client, db, sample_appointment):
+    client.post(
+        f"/appointments/{sample_appointment.id}/payments",
+        data={"amount": "40", "payment_date": "2026-07-15",
+              "payment_method": "credit", "is_refund": "1"},
+    )
+    p = db.query(Payment).filter_by(appointment_id=sample_appointment.id).first()
+    assert p.is_refund is True
+    assert p.servicer_fee == 0.0  # refunds carry no processor fee
+
+
+def test_negative_payment_rejected(client, sample_appointment):
+    r = client.post(
+        f"/appointments/{sample_appointment.id}/payments",
+        data={"amount": "-10", "payment_date": "2026-07-15"},
+    )
+    assert r.status_code == 400
+
+
+def test_write_off_toggles_and_clears_balance(client, db, sample_appointment):
+    r = client.post(f"/appointments/{sample_appointment.id}/write-off")
+    assert r.status_code == 200
+    db.refresh(sample_appointment)
+    assert sample_appointment.written_off is True
+    assert "Written off" in r.text
+    # Toggling again restores the fee.
+    client.post(f"/appointments/{sample_appointment.id}/write-off")
+    db.refresh(sample_appointment)
+    assert sample_appointment.written_off is False
+
+
+def test_reports_summary_includes_fees_and_net(client, db, sample_appointment):
+    client.post(
+        f"/appointments/{sample_appointment.id}/payments",
+        data={"amount": "100", "payment_date": "2026-07-15",
+              "payment_method": "credit", "servicer_fee_percent": "3"},
+    )
+    from app.reports import income_summary
+    s = income_summary(db)
+    assert s["collected"] == 100
+    assert s["servicer_fees"] == 3.0
+    assert s["net_collected"] == 97.0
+
+
+def test_credit_fee_percent_saved_in_settings(client, db):
+    client.post("/settings", data={"name": "Dr. X", "npi": "1112223334",
+                                    "credit_fee_percent": "2.5"},
+                follow_redirects=False)
+    from app.crud import get_or_create_provider
+    assert get_or_create_provider(db).credit_fee_percent == 2.5

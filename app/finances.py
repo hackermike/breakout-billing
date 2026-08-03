@@ -17,22 +17,33 @@ CHARGEABLE_STATUS = "completed"
 
 
 def appt_paid(appt: Appointment) -> float:
-    """Total payments recorded against one appointment."""
-    return sum(p.amount for p in appt.payments)
+    """Net payments recorded against one appointment (refunds count negatively)."""
+    return sum(p.signed_amount for p in appt.payments)
 
 
 def completed(appts: list[Appointment]) -> list[Appointment]:
     return [a for a in appts if a.status == CHARGEABLE_STATUS]
 
 
+def appt_charged(appt: Appointment) -> float:
+    """The fee a completed session bills — zero once the fee is written off."""
+    if appt.status != CHARGEABLE_STATUS or appt.written_off:
+        return 0.0
+    return appt.fee or 0.0
+
+
 def total_collected(appts: list[Appointment]) -> float:
-    """All cash received across the given appointments."""
+    """All cash received across the given appointments, net of refunds."""
     return sum(appt_paid(a) for a in appts)
 
 
+def total_servicer_fees(appts: list[Appointment]) -> float:
+    """Card-processor fees paid across the given appointments' payments."""
+    return round(sum(p.servicer_fee or 0 for a in appts for p in a.payments), 2)
+
+
 def balance_on_services(appts: list[Appointment]) -> dict:
-    """Charged / paid / outstanding scoped to completed sessions."""
-    done = completed(appts)
-    charged = sum(a.fee or 0 for a in done)
-    paid = sum(appt_paid(a) for a in done)
+    """Charged / paid / outstanding scoped to completed, non-written-off sessions."""
+    charged = sum(appt_charged(a) for a in appts)
+    paid = sum(appt_paid(a) for a in completed(appts))
     return {"charged": charged, "paid": paid, "outstanding": round(charged - paid, 2)}

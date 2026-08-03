@@ -38,6 +38,17 @@
     </label>
     {% endfor %}
 
+    <label class="block">
+      <span class="text-sm font-medium text-gray-600 dark:text-gray-300">
+        Default card processor fee (%)
+      </span>
+      <input type="number" name="credit_fee_percent" step="0.01" min="0"
+             value="{{ '%.2f'|format(provider.credit_fee_percent if provider.credit_fee_percent is not none else 2.9) }}"
+             class="mt-1 w-full max-w-xs border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2
+                    bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100" />
+      <span class="text-xs text-gray-400">Autofills when recording a credit-card payment; editable per payment.</span>
+    </label>
+
     <label class="flex items-start gap-2 pt-2">
       <input type="checkbox" name="email_baa_confirmed" value="1"
              {{ 'checked' if provider.email_baa_confirmed }}
