@@ -28,8 +28,9 @@ on the calendar immediately.
 Statuses: **scheduled**, **completed**, **cancelled**, **no-show** — each shows a
 distinct color on the calendar.
 
-**Recurring:** choose a weekly or biweekly repeat and a number of occurrences to
-book a standing slot in one go.
+**Recurring:** repeat every N weeks or N months, with a number of occurrences, to
+book a standing slot in one go. The CPT code also fills in a default session length,
+which you can still adjust.
 
 **Editing:** open a day, click **Edit** on an appointment to change any detail,
 move it to another day, or delete it. For a recurring appointment you can apply

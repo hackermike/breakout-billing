@@ -40,10 +40,11 @@
     <label class="block flex-1">
       <span class="text-xs text-gray-500 dark:text-gray-400">CPT code</span>
       <select name="cpt_code"
+              onchange="const d = this.selectedOptions[0].dataset.duration; if (d) this.form.duration_minutes.value = d;"
               class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
                      bg-white dark:bg-slate-900">
         {% for c in cpt_codes %}
-        <option value="{{ c.code }}">{{ c.label }}</option>
+        <option value="{{ c.code }}" data-duration="{{ c.duration }}">{{ c.label }}</option>
         {% endfor %}
       </select>
     </label>
@@ -70,16 +71,29 @@
   <div class="flex gap-2">
     <label class="block flex-1">
       <span class="text-xs text-gray-500 dark:text-gray-400">Repeat</span>
-      <select name="repeat" id="repeat-select"
-              onchange="document.getElementById('occurrences-field').classList.toggle('hidden', this.value === 'none')"
+      <select name="repeat_unit" id="repeat-unit"
+              onchange="document.getElementById('recurrence-fields').classList.toggle('hidden', this.value === 'none')"
               class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
                      bg-white dark:bg-slate-900">
         <option value="none" selected>Does not repeat</option>
-        <option value="weekly">Weekly</option>
-        <option value="biweekly">Every 2 weeks</option>
+        <option value="weeks">Weeks</option>
+        <option value="months">Months</option>
       </select>
     </label>
-    <label class="block w-28 hidden" id="occurrences-field">
+  </div>
+
+  <div class="flex gap-2 hidden" id="recurrence-fields">
+    <label class="block w-20">
+      <span class="text-xs text-gray-500 dark:text-gray-400">Every</span>
+      <select name="repeat_interval"
+              class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
+                     bg-white dark:bg-slate-900">
+        {% for n in range(1, 6) %}
+        <option value="{{ n }}">{{ n }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="block w-28">
       <span class="text-xs text-gray-500 dark:text-gray-400">Occurrences</span>
       <input type="number" name="occurrences" value="8" min="1" max="52"
              class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
