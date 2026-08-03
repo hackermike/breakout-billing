@@ -23,11 +23,11 @@ tool one therapist can run on their own laptop.
 - **Calendar** — month view of appointments, color-coded by status. Click a day to see details, book new appointments inline (they appear live, no page reload), and record payments.
 - **Clients** — add clients with demographics, insurance info, and ICD-10 diagnosis codes; each client has a detail page with appointment history, running balance, and one-click superbill generation.
 - **Import** — bring your client list over from SimplePractice, TherapyNotes, TheraNest, or any spreadsheet; columns are matched automatically. See [docs/IMPORT.md](docs/IMPORT.md).
-- **Payments** — record payments against any appointment; balances and paid-in-full status update automatically.
+- **Payments** — record cash or credit-card payments against any appointment; balances update automatically. Credit payments track the card-processor fee (a default percent you set, editable per payment). Waive a fee with a write-off, and record a refund when a client is paid back for an overpayment.
 - **Edit & reschedule** — change any appointment, move it to another day (calendar chips update live), or delete it.
 - **Recurring appointments** — book a standing slot every N weeks or N months for up to 52 sessions in one go, and edit or cancel *this and all future* occurrences as a group.
 - **Superbills** — generate a professional PDF a client submits to their insurer for out-of-network reimbursement, with your NPI, CPT/ICD-10 codes, fees, and payments.
-- **Reports** — income by month, income by payer, and outstanding balances (accounts receivable).
+- **Reports** — income by month (charged, collected, card fees, and net), income by payer, and outstanding balances (accounts receivable).
 - **Email reminders** — opt clients in per person; a "Reminders due" panel sends the next couple of days' appointment reminders (preview-only until you configure SMTP — nothing is delivered and reminders stay due, so none are lost). Setup guide: [docs/EMAIL-SETUP.md](docs/EMAIL-SETUP.md).
 - **Settings** — store your provider details (NPI, credentials, tax ID) once; they flow onto every superbill.
 - **Light & dark mode**, and everything runs on your own machine.

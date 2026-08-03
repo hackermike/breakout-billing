@@ -155,12 +155,17 @@ def main():
             continue  # unpaid -> shows as outstanding balance
         ratio = 0.5 if i % 9 == 7 else 1.0  # some partial payments
         payer = "client" if i % 3 == 0 else "insurance"
+        method = "credit" if payer == "client" else "insurance"
+        amount = round(appt.fee * ratio, 2)
+        # Credit-card payments carry a ~2.9% processor fee, shown net in reports.
+        servicer_fee = round(amount * 0.029, 2) if method == "credit" else 0.0
         db.add(Payment(
             appointment_id=appt.id,
-            amount=round(appt.fee * ratio, 2),
+            amount=amount,
             payment_date=appt.datetime.date(),
-            payment_method="card" if payer == "client" else "insurance",
+            payment_method=method,
             payer=payer,
+            servicer_fee=servicer_fee,
         ))
 
     db.commit()

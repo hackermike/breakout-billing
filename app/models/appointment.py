@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -17,6 +17,8 @@ class Appointment(Base):
     status = Column(String, default="scheduled")
     series_id = Column(String, index=True)  # shared by a recurring series; NULL if standalone
     notes = Column(String)
+    # A written-off fee is waived: it no longer counts toward accounts receivable.
+    written_off = Column(Boolean, default=False)
 
     client = relationship("Client", back_populates="appointments")
     payments = relationship("Payment", back_populates="appointment", cascade="all, delete-orphan")

@@ -24,9 +24,15 @@
 
       {% if appt.fee %}
       <div class="mt-2 pt-2 border-t border-black/5 dark:border-white/10 text-xs flex items-center justify-between">
-        <span class="opacity-70">Fee ${{ '%.2f'|format(appt.fee) }} &middot; Paid ${{ '%.2f'|format(paid) }}</span>
-        {% if balance > 0.005 %}
+        <span class="opacity-70">
+          Fee ${{ '%.2f'|format(appt.fee) }}{% if appt.written_off %} <span class="line-through opacity-60">waived</span>{% endif %} &middot; Paid ${{ '%.2f'|format(paid) }}
+        </span>
+        {% if appt.written_off %}
+        <span class="font-semibold text-gray-500 dark:text-gray-400">Written off</span>
+        {% elif balance > 0.005 %}
         <span class="font-semibold text-red-600 dark:text-red-300">${{ '%.2f'|format(balance) }} due</span>
+        {% elif balance < -0.005 %}
+        <span class="font-semibold text-amber-600 dark:text-amber-300">${{ '%.2f'|format(-balance) }} credit</span>
         {% else %}
         <span class="font-semibold text-green-600 dark:text-green-300">Paid in full</span>
         {% endif %}
@@ -35,12 +41,18 @@
 
       {% for p in appt.payments %}
       <div class="mt-1 text-xs opacity-60 flex justify-between">
-        <span>{{ p.payment_date.strftime('%-m/%-d') }} &middot; {{ p.payment_method }} ({{ p.payer }})</span>
-        <span>${{ '%.2f'|format(p.amount) }}</span>
+        <span>
+          {{ p.payment_date.strftime('%-m/%-d') }} &middot;
+          {% if p.is_refund %}refund{% else %}{{ p.payment_method }}{% endif %} ({{ p.payer }})
+          {% if p.servicer_fee %}<span class="opacity-70">− ${{ '%.2f'|format(p.servicer_fee) }} fee</span>{% endif %}
+        </span>
+        <span class="{{ 'text-red-600 dark:text-red-300' if p.is_refund }}">
+          {{ '−' if p.is_refund }}${{ '%.2f'|format(p.amount) }}
+        </span>
       </div>
       {% endfor %}
 
-      <div class="mt-2 flex gap-2">
+      <div class="mt-2 flex flex-wrap gap-2">
         <button hx-get="/appointments/{{ appt.id }}/payment-form"
                 hx-target="#pay-slot-{{ appt.id }}" hx-swap="innerHTML"
                 class="text-xs px-2 py-1 rounded border border-current opacity-60 hover:opacity-100 transition-opacity">
@@ -51,6 +63,14 @@
                 class="text-xs px-2 py-1 rounded border border-current opacity-60 hover:opacity-100 transition-opacity">
           Edit
         </button>
+        {% if appt.fee %}
+        <button hx-post="/appointments/{{ appt.id }}/write-off"
+                hx-target="#day-detail" hx-swap="innerHTML"
+                hx-confirm="{{ 'Restore this fee to the balance?' if appt.written_off else 'Write off (waive) this fee? It will no longer count toward what the client owes.' }}"
+                class="text-xs px-2 py-1 rounded border border-current opacity-60 hover:opacity-100 transition-opacity">
+          {{ 'Restore fee' if appt.written_off else 'Write off' }}
+        </button>
+        {% endif %}
       </div>
       <div id="pay-slot-{{ appt.id }}"></div>
       <div id="edit-slot-{{ appt.id }}"></div>

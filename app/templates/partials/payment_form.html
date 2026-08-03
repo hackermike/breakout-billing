@@ -24,9 +24,10 @@
     <label class="block flex-1">
       <span class="text-xs text-gray-500 dark:text-gray-400">Method</span>
       <select name="payment_method"
+              onchange="this.closest('form').querySelector('#credit-fee-field').classList.toggle('hidden', this.value !== 'credit')"
               class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
                      bg-white dark:bg-slate-900">
-        <option value="card">Card</option>
+        <option value="credit">Credit card</option>
         <option value="cash">Cash</option>
         <option value="check">Check</option>
         <option value="insurance">Insurance</option>
@@ -43,6 +44,21 @@
       </select>
     </label>
   </div>
+
+  <label class="block" id="credit-fee-field">
+    <span class="text-xs text-gray-500 dark:text-gray-400">Card processor fee (%)</span>
+    <input type="number" name="servicer_fee_percent" step="0.01" min="0"
+           value="{{ '%.2f'|format(default_credit_percent) }}"
+           class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
+                  bg-white dark:bg-slate-900" />
+    <span class="text-[11px] text-gray-400">Deducted as a fee in income reports; edit to override.</span>
+  </label>
+
+  <label class="flex items-center gap-2">
+    <input type="checkbox" name="is_refund" value="1"
+           class="rounded border-gray-300 dark:border-slate-600 text-teal-600" />
+    <span class="text-xs text-gray-600 dark:text-gray-300">This is a refund to the client (e.g. an overpayment paid back)</span>
+  </label>
 
   <div class="flex gap-2 pt-1">
     <button type="submit"
