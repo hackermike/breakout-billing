@@ -1,1 +1,0 @@
-/goal Please script up some common actions that can be ran through that both illustrates how everything works but also populates the system with reasonable looking data. Maybe we need a folder with fake patient info for a handful of patients and a way to walk through this?
