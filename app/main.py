@@ -26,15 +26,21 @@ from app.routers import (
     settings,
     superbills,
 )
+from app.startup_notice import print_security_notice
 
 # Requests that must work without being signed in.
-_EXEMPT_PATHS = {"/login", "/setup", "/logout", "/healthz"}
+_EXEMPT_PATHS = {"/login", "/logout", "/healthz"}
 _EXEMPT_PREFIXES = ("/static",)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     run_migrations()
+    db = SessionLocal()
+    try:
+        print_security_notice(auth.is_configured(db))
+    finally:
+        db.close()
     yield
 
 
@@ -43,7 +49,8 @@ app = FastAPI(title="Breakout Billing", lifespan=lifespan)
 
 @app.middleware("http")
 async def require_login(request: Request, call_next):
-    """Gate every request behind login (except setup/login/static)."""
+    """Login is optional. When a password is set, gate every page behind it;
+    when none is set, the app is open (localhost, single user by design)."""
     path = request.url.path
     if path in _EXEMPT_PATHS or any(path.startswith(p) for p in _EXEMPT_PREFIXES):
         return await call_next(request)
@@ -54,9 +61,7 @@ async def require_login(request: Request, call_next):
     finally:
         db.close()
 
-    if not configured:
-        return RedirectResponse(url="/setup", status_code=303)
-    if not request.session.get("authenticated"):
+    if configured and not request.session.get("authenticated"):
         return RedirectResponse(url="/login", status_code=303)
 
     response = await call_next(request)

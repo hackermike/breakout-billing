@@ -115,5 +115,94 @@
       client data) is in <span class="font-mono">docs/EMAIL-SETUP.md</span>.
     </p>
   </section>
+
+  <section class="mt-8" id="security">
+    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">Security</h3>
+    <p class="text-gray-500 dark:text-gray-400 text-sm mb-3">
+      A login password is <strong>optional</strong>. This app runs only on this
+      computer (other computers on your network can't open it). For real client
+      data (HIPAA), we recommend turning the password on <em>and</em> turning on
+      disk encryption (Mac: <span class="font-mono">System Settings → Privacy &amp;
+      Security → FileVault</span>) so files can't be read if the laptop is lost.
+      The password only controls who can open the app — it does not encrypt your
+      data, and turning it off never deletes anything.
+    </p>
+
+    {% set sec_messages = {
+      'on': ('green', 'Login password turned on.'),
+      'off': ('green', 'Login password turned off. Your data is untouched.'),
+      'changed': ('green', 'Password changed.'),
+      'wrong': ('red', 'Current password is incorrect.'),
+      'short': ('red', 'Password must be at least 8 characters.'),
+      'mismatch': ('red', "New passwords don't match."),
+      'exists': ('red', 'A password is already set.'),
+    } %}
+    {% if sec in sec_messages %}
+    {% set tone, msg = sec_messages[sec] %}
+    <div class="mb-3 px-3 py-2 rounded-md text-sm border
+                bg-{{ tone }}-50 dark:bg-{{ tone }}-900/20 text-{{ tone }}-700 dark:text-{{ tone }}-300
+                border-{{ tone }}-200 dark:border-{{ tone }}-800">
+      {{ msg }}
+    </div>
+    {% endif %}
+
+    {% if password_set %}
+    <p class="text-sm text-green-700 dark:text-green-400 mb-3">
+      Login password is <strong>on</strong> — the app asks for it before opening.
+    </p>
+    <form method="post" action="/security/change" class="space-y-3 max-w-sm">
+      {% for key, label in [
+        ('current_password', 'Current password'),
+        ('new_password', 'New password (min 8 characters)'),
+        ('confirm', 'Confirm new password')] %}
+      <label class="block">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">{{ label }}</span>
+        <input type="password" name="{{ key }}" required autocomplete="off"
+               class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2
+                      bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100" />
+      </label>
+      {% endfor %}
+      <button type="submit"
+              class="px-5 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors">
+        Change password
+      </button>
+    </form>
+
+    <form method="post" action="/security/remove" class="mt-4 max-w-sm"
+          onsubmit="return confirm('Turn off the login password? The app will open without asking for a password. Your data is not affected.');">
+      <label class="block mb-2">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Current password</span>
+        <input type="password" name="current_password" required autocomplete="off"
+               class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2
+                      bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100" />
+      </label>
+      <button type="submit"
+              class="px-5 py-2 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300
+                     rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
+        Turn off login password
+      </button>
+    </form>
+    {% else %}
+    <p class="text-sm text-amber-700 dark:text-amber-400 mb-3">
+      Login password is <strong>off</strong> — anyone who can use this computer can open the app.
+    </p>
+    <form method="post" action="/security/set" class="space-y-3 max-w-sm">
+      {% for key, label in [
+        ('new_password', 'New password (min 8 characters)'),
+        ('confirm', 'Confirm password')] %}
+      <label class="block">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">{{ label }}</span>
+        <input type="password" name="{{ key }}" required autocomplete="off"
+               class="mt-1 w-full border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2
+                      bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100" />
+      </label>
+      {% endfor %}
+      <button type="submit"
+              class="px-5 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors">
+        Turn on login password
+      </button>
+    </form>
+    {% endif %}
+  </section>
 </div>
 {% endblock %}

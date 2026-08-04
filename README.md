@@ -88,9 +88,14 @@ This writes a timestamped copy to `backups/` and keeps the 30 most recent. See [
 
 ## HIPAA
 
-On first launch you'll set a **password** — it protects the app on your machine, so a lost or borrowed laptop doesn't hand over client data.
+The app runs only on your computer — it listens on `localhost`, so other computers on your network can't reach it, and your data never leaves your machine.
 
-Running locally means your data never leaves your computer. Turn on FileVault disk encryption (`System Settings → Privacy & Security → FileVault`) to satisfy the HIPAA encryption-at-rest requirement for a solo practice. Keep backups encrypted too — see [docs/BACKUP.md](docs/BACKUP.md). Security posture and boundaries: [docs/SECURITY.md](docs/SECURITY.md).
+For real client data, do two things:
+
+- **Turn on a login password** (Settings → Security). It's **optional and off by default**; when on, the app asks for it before opening, so a lost or borrowed laptop doesn't hand over client data. The password is only a gate — it does **not** encrypt your data, and turning it off never deletes anything.
+- **Turn on FileVault disk encryption** (`System Settings → Privacy & Security → FileVault`). This is what actually satisfies the HIPAA encryption-at-rest requirement for a solo practice.
+
+Keep backups encrypted too — see [docs/BACKUP.md](docs/BACKUP.md). Security posture and boundaries: [docs/SECURITY.md](docs/SECURITY.md).
 
 ## For developers
 

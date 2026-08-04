@@ -59,3 +59,10 @@ def verify_password(db: Session, password: str) -> bool:
     if row is None:
         return False
     return hmac.compare_digest(row.password_hash, _hash(password, row.salt))
+
+
+def clear_password(db: Session) -> None:
+    """Remove the login password entirely, so the app opens without a login.
+    Data is untouched — the password was only a gate, never an encryption key."""
+    db.query(AuthConfig).delete()
+    db.commit()
