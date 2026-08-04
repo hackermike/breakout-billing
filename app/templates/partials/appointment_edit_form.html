@@ -95,6 +95,26 @@
     </label>
   </div>
 
+  <label class="block">
+    <span class="text-xs text-gray-500 dark:text-gray-400">Diagnosis for this session (ICD-10, optional)</span>
+    <input type="text" name="diagnosis_codes" value="{{ appointment.diagnosis_codes or '' }}"
+           placeholder="defaults to the client's diagnosis"
+           class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
+                  bg-white dark:bg-slate-900" />
+  </label>
+
+  <div>
+    <span class="text-xs text-gray-500 dark:text-gray-400">CPT modifiers (optional)</span>
+    <div class="mt-0.5 flex gap-2">
+      {% for n in [1, 2, 3, 4] %}
+      <input type="text" name="modifier_{{ n }}" maxlength="2"
+             value="{{ appointment['modifier_' ~ n] or '' }}" placeholder="—"
+             class="w-full text-center border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
+                    bg-white dark:bg-slate-900" />
+      {% endfor %}
+    </div>
+  </div>
+
   <div class="flex gap-2 pt-1">
     <button type="submit"
             class="flex-1 px-3 py-1.5 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors">
