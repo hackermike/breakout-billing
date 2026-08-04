@@ -57,7 +57,9 @@ security banner at startup. A **login password is optional and off by default**
 (Settings → Security); when enabled it gates every route behind a signed session,
 so a lost/borrowed laptop doesn't hand over all PHI. The password is only an
 access gate — it does **not** encrypt data. **Encryption-at-rest is FileVault**;
-enable it for real client data.
+enable it for real client data. Why the app itself doesn't encrypt the database,
+and what the SQLCipher path would be if that ever changes:
+`docs/ENCRYPTION-OPTIONS.md`.
 
 It's **single-user** by design: there are no per-user accounts or roles. Before
 any hosted or multi-user deployment you'd still need:
