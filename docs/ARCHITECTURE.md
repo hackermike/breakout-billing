@@ -45,6 +45,7 @@ app/
     pages.py         # About
   templates/         # Jinja2; partials/ are HTMX fragments
   static/            # logo images, css
+breakout-core/       # shared domain package (see below); app/cpt|finances|superbill re-export it
 migrations/          # Alembic env + versioned migrations (schema source of truth)
 seed.py              # demo data (runs migrations, then inserts a month of data)
 scripts/             # start/backup/reseed/smoke + demo; scripts/dev/ (gitignored)
@@ -55,6 +56,12 @@ tests/               # pytest unit + integration; tests/e2e/ Playwright
 
 ## Key patterns
 
+- **Shared domain in `breakout-core`.** The CPT catalog, money math, and
+  superbill/statement PDF are an ORM-free package (`breakout-core/breakout_core/`)
+  that operates on structural `Protocol`s (`domain.py`), not SQLAlchemy models —
+  so the same logic serves this app and the multi-tenant care platform. It's
+  installed as an editable dependency; `app/cpt.py`, `app/finances.py`, and
+  `app/superbill.py` are thin re-export shims so existing imports keep working.
 - **Migrations are the schema source of truth.** `run_migrations()` runs
   `alembic upgrade head` at app startup and in `seed.py`; never `create_all` in
   app code. `tests/test_migrations.py` fails if the models drift from the
