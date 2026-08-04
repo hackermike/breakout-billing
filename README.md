@@ -24,7 +24,7 @@ tool one therapist can run on their own laptop.
 - **Clients** — add clients with demographics, insurance info, and ICD-10 diagnosis codes; each client has a detail page with appointment history, running balance, and one-click superbill generation.
 - **Import** — bring your client list over from SimplePractice, TherapyNotes, TheraNest, or any spreadsheet; columns are matched automatically. See [docs/IMPORT.md](docs/IMPORT.md).
 - **Payments** — record cash or credit-card payments against any appointment; balances update automatically. Credit payments track the card-processor fee (a default percent you set, editable per payment). Waive a fee with a write-off, and record a refund when a client is paid back for an overpayment.
-- **Edit & reschedule** — change any appointment, move it to another day (calendar chips update live), or delete it.
+- **Edit & reschedule** — change any appointment, drag a calendar chip to another day to reschedule it (chips update live), or delete it.
 - **Recurring appointments** — book a standing slot every N weeks or N months for up to 52 sessions in one go, and edit or cancel *this and all future* occurrences as a group.
 - **Superbills** — generate a professional PDF a client submits to their insurer for out-of-network reimbursement, with your NPI, CPT/ICD-10 codes, fees, and payments.
 - **Reports** — income grouped by month, quarter, or year over any date range (charged, collected, card fees, and net), income by payer, outstanding balances (accounts receivable), and per-client statements.

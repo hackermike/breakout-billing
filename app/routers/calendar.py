@@ -308,6 +308,39 @@ async def update_appointment(
     )
 
 
+@router.post("/appointments/{appointment_id}/reschedule")
+async def reschedule_appointment(
+    request: Request,
+    appointment_id: int,
+    date: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Move a single appointment to another day (its time of day is kept), for the
+    calendar's drag-and-drop. Series membership is unchanged — only this occurrence
+    moves, matching a "this appointment only" edit."""
+    appt = _get_appointment(db, appointment_id)
+    try:
+        target_day = datetime.strptime(date, "%Y-%m-%d").date()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid date") from exc
+
+    old_dt = appt.datetime
+    appt.datetime = datetime.combine(target_day, old_dt.time())
+    db.commit()
+
+    affected = {old_dt.strftime("%Y-%m-%d"), appt.datetime.strftime("%Y-%m-%d")}
+    primary_day = appt.datetime.strftime("%Y-%m-%d")
+    return templates.TemplateResponse(
+        request,
+        "partials/day_detail.html",
+        {
+            **day_detail_context(db, appt.datetime),
+            "oob_chips": True,
+            "extra_oob": _oob_for_days(db, affected, primary_day),
+        },
+    )
+
+
 @router.post("/appointments/{appointment_id}/delete")
 async def delete_appointment(
     request: Request,

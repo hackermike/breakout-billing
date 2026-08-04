@@ -37,6 +37,10 @@ move it to another day, or delete it. For a recurring appointment you can apply
 the change (or a cancellation) to **just this one** or **this and all future**
 occurrences.
 
+**Drag to reschedule:** grab an appointment chip on the month grid and drop it
+on another day to move it there (its time of day is kept). Only that occurrence
+moves; the calendar updates live.
+
 ## 4. Record payments
 
 Open a day, find the appointment, and click **+ Record payment**. Enter the

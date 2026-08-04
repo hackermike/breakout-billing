@@ -1,6 +1,7 @@
 <div id="chips-{{ date_str }}" class="space-y-0.5"{% if oob %} hx-swap-oob="true"{% endif %}>
   {% for appt in appointments[:3] %}
-  <div class="text-xs px-1.5 py-0.5 rounded border truncate {{ status_colors[appt.status] }}">
+  <div class="appt-chip text-xs px-1.5 py-0.5 rounded border truncate cursor-grab active:cursor-grabbing {{ status_colors[appt.status] }}"
+       draggable="true" data-appt-id="{{ appt.id }}" title="Drag to another day to reschedule">
     {{ appt.datetime.strftime('%I:%M').lstrip('0') }} {{ appt.client.last_name }}
   </div>
   {% endfor %}

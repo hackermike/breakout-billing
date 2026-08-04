@@ -617,3 +617,30 @@ def test_edit_sets_session_diagnosis_and_modifiers(client, db, sample_appointmen
     db.refresh(sample_appointment)
     assert sample_appointment.diagnosis_codes == "F33.0"
     assert sample_appointment.modifiers == ["95", "GT"]
+
+
+def test_drag_reschedule_moves_appointment(client, db, sample_appointment):
+    # sample_appointment is 2026-07-15 10:00; drag it to 2026-07-20.
+    r = client.post(
+        f"/appointments/{sample_appointment.id}/reschedule",
+        data={"date": "2026-07-20"},
+    )
+    assert r.status_code == 200
+    db.refresh(sample_appointment)
+    assert sample_appointment.datetime.strftime("%Y-%m-%d %H:%M") == "2026-07-20 10:00"
+    # Both the old and new day chips refresh out-of-band.
+    assert 'id="chips-2026-07-20"' in r.text
+    assert 'hx-swap-oob="true"' in r.text
+
+
+def test_drag_reschedule_rejects_bad_date(client, sample_appointment):
+    r = client.post(
+        f"/appointments/{sample_appointment.id}/reschedule",
+        data={"date": "not-a-date"},
+    )
+    assert r.status_code == 400
+
+
+def test_drag_reschedule_unknown_appointment_404(client):
+    r = client.post("/appointments/999999/reschedule", data={"date": "2026-07-20"})
+    assert r.status_code == 404
