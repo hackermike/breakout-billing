@@ -1,10 +1,11 @@
 # Security posture & review
 
 Breakout Billing is designed as a **local, single-user** application: it runs on
-the therapist's own machine, stores everything in one SQLite file, and has **no
-authentication** by design. Its security model rests on that boundary — the OS
-account and full-disk encryption (FileVault) protect the data, and the app is not
-meant to be exposed on a network.
+the therapist's own machine (listening on `localhost`), stores everything in one
+SQLite file, and offers a **single-user login password that is optional and off
+by default**. Its security model rests on that boundary — the OS account and
+full-disk encryption (FileVault) protect the data, an optional password gates
+access, and the app is not meant to be exposed on a network.
 
 This document summarizes a full review of the codebase.
 
@@ -42,25 +43,32 @@ This document summarizes a full review of the codebase.
 | # | Finding | Severity (local / hosted) | Status |
 |---|---------|---------------------------|--------|
 | 1 | `POST /settings/test-email` accepted an arbitrary recipient (mail-relay abuse) | Low / Medium | **Fixed** — sends only to the provider's own address |
-| 2 | No authentication | — / **Critical** | **Fixed** — single-user password + session gates every route |
+| 2 | No authentication | — / **Critical** | **Optional** — a single-user password (off by default) gates every route when enabled; see below |
 | 3 | Interactive docs (`/docs`, `/openapi.json`) exposed | Low / Low | Recommend disabling if hosted |
 | 4 | No CSRF tokens on POST forms | N/A / Medium | Needed before multi-user/hosted |
-| 5 | Payment `amount` not validated (negatives allowed) | Low / Low | Data-integrity; decide refunds vs. reject |
+| 5 | Payment `amount` not validated (negatives allowed) | Low / Low | **Fixed** — negatives rejected |
 | 6 | No rate limiting | N/A / Low | Only matters if hosted |
 
 ## The boundary (most important)
 
-The app now requires a **password** (set on first run) and gates every route
-behind a signed session — so a lost/borrowed laptop doesn't hand over all PHI.
-It's still **single-user**: there are no per-user accounts or roles. Before any
-hosted or multi-user deployment you'd still need:
+The app runs on **localhost** (uvicorn binds `127.0.0.1` via `start.sh`), so it
+isn't reachable from other machines by default, and it prints a plain-English
+security banner at startup. A **login password is optional and off by default**
+(Settings → Security); when enabled it gates every route behind a signed session,
+so a lost/borrowed laptop doesn't hand over all PHI. The password is only an
+access gate — it does **not** encrypt data. **Encryption-at-rest is FileVault**;
+enable it for real client data.
 
-- per-user accounts and data isolation (the current password is one shared login),
+It's **single-user** by design: there are no per-user accounts or roles. Before
+any hosted or multi-user deployment you'd still need:
+
+- a required login with per-user accounts and data isolation (the password is one shared login),
 - CSRF protection on state-changing requests,
 - disabled/guarded API docs,
 - a BAA-covered host and email provider (see `docs/NOTIFICATIONS-PLAN.md`),
-- and note the `Dockerfile` binds `0.0.0.0` — a container must not be exposed
-  publicly without the above.
+- TLS — the app speaks plain HTTP; never expose it to a network without a TLS-terminating proxy,
+- and note the `Dockerfile` binds `0.0.0.0` (network-exposed); the startup banner
+  warns when the bind host isn't loopback.
 
-Until then: keep FileVault on, don't port-forward the app, and keep backups
-encrypted (`docs/BACKUP.md`).
+Until then: keep FileVault on, turn the login password on, don't port-forward the
+app, and keep backups encrypted (`docs/BACKUP.md`).

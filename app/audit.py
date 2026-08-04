@@ -12,7 +12,7 @@ from app.models.audit import AuditEntry
 
 # Access to these adds no audit value (assets, health, auth pages, the log itself).
 _SKIP_PREFIXES = ("/static", "/audit")
-_SKIP_PATHS = {"/healthz", "/login", "/setup", "/logout", "/favicon.ico"}
+_SKIP_PATHS = {"/healthz", "/login", "/logout", "/favicon.ico"}
 
 
 def should_log(path: str) -> bool:

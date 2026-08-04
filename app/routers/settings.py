@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from app import auth
 from app.crud import get_or_create_provider
 from app.database import get_db
 from app.notifications import email_configured, email_from, send_email
@@ -12,7 +13,8 @@ router = APIRouter()
 
 @router.get("/settings")
 async def settings_page(
-    request: Request, saved: bool = False, tested: str = "", db: Session = Depends(get_db)
+    request: Request, saved: bool = False, tested: str = "", sec: str = "",
+    db: Session = Depends(get_db)
 ):
     provider = get_or_create_provider(db)
     return templates.TemplateResponse(
@@ -23,6 +25,8 @@ async def settings_page(
             "provider": provider,
             "saved": saved,
             "tested": tested,
+            "sec": sec,
+            "password_set": auth.is_configured(db),
             "email_configured": email_configured(),
             "email_from": email_from(),
         },
