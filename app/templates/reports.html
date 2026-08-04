@@ -6,10 +6,42 @@
 {% block content %}
 <div class="p-6 max-w-4xl">
   <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-1">Reports</h2>
-  <p class="text-gray-500 dark:text-gray-400 mb-6">
+  <p class="text-gray-500 dark:text-gray-400 mb-4">
     Revenue is recognized when a session is marked <strong>completed</strong>; cash is
-    counted when a payment is recorded.
+    counted when a payment is recorded. Income figures below cover the selected period;
+    outstanding balances are current.
   </p>
+
+  <!-- Period controls -->
+  <form method="get" action="/reports"
+        class="flex flex-wrap items-end gap-3 mb-6 p-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+    <label class="block">
+      <span class="text-xs text-gray-500 dark:text-gray-400">Group by</span>
+      <select name="group"
+              class="mt-0.5 block border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5 bg-white dark:bg-slate-900 text-sm">
+        {% for g in ['month', 'quarter', 'year'] %}
+        <option value="{{ g }}" {{ 'selected' if group == g }} class="capitalize">{{ g|capitalize }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="block">
+      <span class="text-xs text-gray-500 dark:text-gray-400">From</span>
+      <input type="date" name="start" value="{{ start_str }}"
+             class="mt-0.5 block border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5 bg-white dark:bg-slate-900 text-sm" />
+    </label>
+    <label class="block">
+      <span class="text-xs text-gray-500 dark:text-gray-400">To</span>
+      <input type="date" name="end" value="{{ end_str }}"
+             class="mt-0.5 block border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5 bg-white dark:bg-slate-900 text-sm" />
+    </label>
+    <button type="submit"
+            class="px-4 py-1.5 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors text-sm">
+      Apply
+    </button>
+    {% if start_str or end_str %}
+    <a href="/reports?group={{ group }}" class="text-sm text-gray-500 dark:text-gray-400 hover:underline">Clear dates</a>
+    {% endif %}
+  </form>
 
   <!-- Summary cards -->
   <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
@@ -29,14 +61,14 @@
   </div>
 
   <div class="grid grid-cols-2 gap-6">
-    <!-- Income by month -->
+    <!-- Income by period -->
     <section>
-      <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">Income by month</h3>
+      <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">Income by {{ group }}</h3>
       <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-gray-50 dark:bg-slate-900/50 text-gray-500 dark:text-gray-400">
             <tr>
-              <th class="text-left px-3 py-2 font-medium">Month</th>
+              <th class="text-left px-3 py-2 font-medium capitalize">{{ group }}</th>
               <th class="text-right px-3 py-2 font-medium">Charged</th>
               <th class="text-right px-3 py-2 font-medium">Collected</th>
               <th class="text-right px-3 py-2 font-medium">Card fees</th>
@@ -44,9 +76,9 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
-            {% for row in by_month %}
+            {% for row in by_period %}
             <tr>
-              <td class="px-3 py-2">{{ row.month }}</td>
+              <td class="px-3 py-2">{{ row.period }}</td>
               <td class="px-3 py-2 text-right">{{ money(row.charged) }}</td>
               <td class="px-3 py-2 text-right text-green-600 dark:text-green-400">{{ money(row.collected) }}</td>
               <td class="px-3 py-2 text-right text-amber-600 dark:text-amber-400">{{ money(row.servicer_fees) }}</td>
@@ -105,5 +137,47 @@
       </div>
     </section>
   </div>
+
+  <!-- Per-client statements -->
+  <section class="mt-8">
+    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">Per-client statements</h3>
+    <p class="text-xs text-gray-400 mb-2">
+      Sessions, charged, and collected in the selected period, with the client's current
+      balance. Open a client to generate a printable statement.
+    </p>
+    <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-900/50 text-gray-500 dark:text-gray-400">
+          <tr>
+            <th class="text-left px-3 py-2 font-medium">Client</th>
+            <th class="text-right px-3 py-2 font-medium">Sessions</th>
+            <th class="text-right px-3 py-2 font-medium">Charged</th>
+            <th class="text-right px-3 py-2 font-medium">Collected</th>
+            <th class="text-right px-3 py-2 font-medium">Balance</th>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+          {% for row in by_client %}
+          <tr>
+            <td class="px-3 py-2">{{ row.client }}</td>
+            <td class="px-3 py-2 text-right">{{ row.sessions }}</td>
+            <td class="px-3 py-2 text-right">{{ money(row.charged) }}</td>
+            <td class="px-3 py-2 text-right text-green-600 dark:text-green-400">{{ money(row.collected) }}</td>
+            <td class="px-3 py-2 text-right font-semibold
+                       {{ 'text-red-600 dark:text-red-400' if row.balance > 0.005 else ('text-amber-600 dark:text-amber-400' if row.balance < -0.005 else '') }}">
+              {% if row.balance < -0.005 %}{{ money(-row.balance) }} cr{% else %}{{ money(row.balance) }}{% endif %}
+            </td>
+            <td class="px-3 py-2 text-right">
+              <a href="/clients/{{ row.client_id }}" class="text-teal-600 dark:text-teal-400 hover:underline">Open</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="px-3 py-6 text-center text-gray-400">No activity in this period</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 </div>
 {% endblock %}
