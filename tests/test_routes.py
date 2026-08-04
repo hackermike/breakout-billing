@@ -405,7 +405,8 @@ def test_settings_save(client, db):
     assert get_or_create_provider(db).npi == "9998887776"
 
 
-def test_superbill_pdf(client, sample_appointment):
+def test_superbill_pdf(client, sample_appointment, sample_provider):
+    # sample_provider has an NPI and sample_client has a diagnosis, so it generates.
     r = client.get(
         f"/superbills/generate?client_id={sample_appointment.client_id}"
         "&start=2026-07-01&end=2026-07-31"
@@ -418,6 +419,40 @@ def test_superbill_pdf(client, sample_appointment):
 def test_superbill_unknown_client_404(client):
     r = client.get("/superbills/generate?client_id=9999&start=2026-07-01&end=2026-07-31")
     assert r.status_code == 404
+
+
+def test_superbill_blocked_missing_npi(client, sample_appointment):
+    # No provider NPI is set -> generation is blocked with guidance.
+    r = client.get(
+        f"/superbills/generate?client_id={sample_appointment.client_id}"
+        "&start=2026-07-01&end=2026-07-31"
+    )
+    assert r.status_code == 400
+    assert "Missing NPI" in r.text
+
+
+def test_superbill_blocked_missing_diagnosis(client, db, sample_provider):
+    from datetime import datetime
+
+    from app.models.appointment import Appointment
+    from app.models.client import Client
+    c = Client(first_name="No", last_name="Dx")  # no client-level diagnosis
+    db.add(c)
+    db.commit()
+    db.add(Appointment(client_id=c.id, datetime=datetime(2026, 7, 10, 9, 0),
+                       fee=150.0, status="completed", cpt_code="90837"))
+    db.commit()
+    r = client.get(f"/superbills/generate?client_id={c.id}&start=2026-07-01&end=2026-07-31")
+    assert r.status_code == 400
+    assert "Missing diagnosis" in r.text
+
+
+def test_superbill_blocked_no_sessions(client, sample_provider, sample_client):
+    r = client.get(
+        f"/superbills/generate?client_id={sample_client.id}&start=2020-01-01&end=2020-01-31"
+    )
+    assert r.status_code == 400
+    assert "No billable sessions" in r.text
 
 
 def test_couple_names_and_patient_designation(db):
