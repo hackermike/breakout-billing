@@ -115,3 +115,11 @@ def test_password_is_hashed_not_stored_plaintext(db):
     assert row.password_hash != "plaintextpw123"
     assert auth.verify_password(db, "plaintextpw123")
     assert not auth.verify_password(db, "wrong")
+
+
+def test_set_password_keeps_single_row(db):
+    from app.models.auth import AuthConfig
+    auth.set_password(db, "firstpassword")
+    auth.set_password(db, "secondpassword")
+    assert db.query(AuthConfig).count() == 1
+    assert auth.verify_password(db, "secondpassword")

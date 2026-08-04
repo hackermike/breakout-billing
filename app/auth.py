@@ -46,7 +46,9 @@ def set_password(db: Session, password: str) -> None:
     salt = secrets.token_hex(16)
     row = db.query(AuthConfig).first()
     if row is None:
-        row = AuthConfig(password_hash=_hash(password, salt), salt=salt)
+        # Pin the singleton to id=1 so a concurrent second insert collides on the
+        # primary key rather than creating a duplicate credential row.
+        row = AuthConfig(id=1, password_hash=_hash(password, salt), salt=salt)
         db.add(row)
     else:
         row.salt = salt

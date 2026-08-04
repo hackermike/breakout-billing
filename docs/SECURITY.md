@@ -1,10 +1,11 @@
 # Security posture & review
 
 Breakout Billing is designed as a **local, single-user** application: it runs on
-the therapist's own machine, stores everything in one SQLite file, and has **no
-authentication** by design. Its security model rests on that boundary — the OS
-account and full-disk encryption (FileVault) protect the data, and the app is not
-meant to be exposed on a network.
+the therapist's own machine (listening on `localhost`), stores everything in one
+SQLite file, and offers a **single-user login password that is optional and off
+by default**. Its security model rests on that boundary — the OS account and
+full-disk encryption (FileVault) protect the data, an optional password gates
+access, and the app is not meant to be exposed on a network.
 
 This document summarizes a full review of the codebase.
 
