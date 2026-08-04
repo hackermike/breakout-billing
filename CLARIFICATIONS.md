@@ -32,6 +32,30 @@ This resolves the questions below:
 Everything below is either resolved by the above (insurance items 4–7 → **no**,
 superbills only) or is a smaller in-scope decision that still stands.
 
+## Update — most of the questions below are now decided & shipped (2026-08)
+
+The owner answered the remaining product questions on **2026-08-02**, and they
+were implemented in August 2026. Treat the numbered questions further down as
+**historical context**, not open work:
+
+- **9. Recurring appointments** → shipped: repeat every N weeks or N months.
+- **10. CPT ↔ duration coupling** → shipped: picking a CPT auto-fills duration (overridable).
+- **11. Telehealth links** → **out of scope**; the feature was removed.
+- **12. Default fees** → per-CPT default, overridable (as-is).
+- **13. Refunds / write-offs** → shipped: write-off a fee, account credit on overpayment, and refunds.
+- **14. Multiple / ordered diagnoses** → **no**; single diagnosis kept (plus an optional per-session diagnosis on the superbill).
+- **15. Reports** → shipped: income by month/quarter/year + custom date range, A/R, per-client statements.
+- **16. Superbill wording/layout** → shipped: retitled "Statement for Insurance Reimbursement", "Make Payments to" footer, per-session diagnosis column, optional CPT modifiers.
+- **17–18. Locale / time zones** → no change.
+- **19. Tagline** → removed.
+- **20. Commercial/dual-licensing** → left case-by-case (AGPL-3.0 stands; commercial inquiries via an issue).
+
+Also shipped alongside these: client nickname & mailing address, couples clients
+with a designated patient, inactive-client filtering, cash/credit payment method
+with a card-processor fee in reports, drag-to-reschedule on the calendar, an
+**optional** login password (off by default), and a startup network/HTTP
+security banner. The **insurance items 4–7 below remain out of scope.**
+
 ## Insurance — how far to go?
 
 Today: store insurance details, tag payments as client vs. insurance, and

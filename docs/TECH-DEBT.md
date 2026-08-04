@@ -27,8 +27,8 @@ charges minus payments on those sessions.
 `app/cpt.py` is the one source: each code carries a label, superbill description,
 default fee, default duration, and a `bookable` flag. Booking (`calendar.py`),
 seeding (`seed.py`), the superbill, and the form dropdowns (via a Jinja global)
-all read from it. Remaining follow-up: auto-fill duration from the chosen CPT
-(the catalog already has it) — the CPT↔duration nicety in `CLARIFICATIONS.md`.
+all read from it. The CPT↔duration auto-fill is now shipped too — picking a CPT
+sets the duration (overridable) on the booking and edit forms.
 
 ## Code structure / DRY
 
@@ -69,10 +69,18 @@ all read from it. Remaining follow-up: auto-fill duration from the chosen CPT
 
 - **Naive datetimes** everywhere. Fine for a single local timezone; a hosted or
   multi-timezone future needs tz-aware storage.
-- **No client editing.** Clients can be created but not edited — providers will
-  need to update insurance/contact info.
-- **No payment editing/deletion.** A mistaken payment can't be corrected.
+- **No payment editing/deletion.** A mistaken payment can't be corrected or
+  removed (you can only add another, e.g. a refund entry). Still a real gap —
+  the most likely next fix.
 - **Recurring series scopes are limited** to "this" and "this + future". No
   "entire series" (including past) or moving the whole series to a new weekday.
-- **Multi-user / auth** is absent by design; revisit if the product moves toward a
-  hosted, multi-therapist platform (see `CLARIFICATIONS.md`).
+  Drag-to-reschedule moves a single occurrence only.
+- **Multi-user / auth** — a single-user login password now exists but is
+  **optional/off by default**; there are still no per-user accounts or roles.
+  That, plus tenant isolation, is the separate hosted-platform effort (see
+  `CLARIFICATIONS.md` and the platform notes).
+
+Resolved since this list was written: client editing, CPT↔duration auto-fill,
+recurring appointments, write-offs/refunds/credits, cash-vs-credit + card fees,
+period/custom-range reports + per-client statements, the superbill→statement
+rework, and negative-payment rejection.
