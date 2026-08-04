@@ -6,7 +6,14 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload
 
 from app import cpt
-from app.crud import STATUS_COLORS, day_appointments, day_detail_context
+from app.crud import (
+    STATUS_COLORS,
+    day_detail_context,
+    get_appointment,
+    oob_day_detail_context,
+    parse_date,
+    parse_datetime,
+)
 from app.database import get_db
 from app.models.appointment import Appointment
 from app.models.client import Client
@@ -145,10 +152,7 @@ async def create_appointment(
     occurrences: int = Form(1),
     db: Session = Depends(get_db),
 ):
-    try:
-        dt = datetime.strptime(f"{date_str} {time}", "%Y-%m-%d %H:%M")
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid date or time") from exc
+    dt = parse_datetime(date_str, time)
     _validate_client_and_fee(db, client_id, fee, require_active=True)
 
     # A standing appointment books several dates at once (every N weeks or months),
@@ -172,21 +176,12 @@ async def create_appointment(
 
     # Re-render the clicked day, and refresh chips out-of-band on every day the
     # series touches (later occurrences may fall on other visible weeks).
-    extra_oob = [
-        (occ.strftime("%Y-%m-%d"), day_appointments(db, occ)) for occ in occurrence_dts[1:]
-    ]
+    affected = {occ.strftime("%Y-%m-%d") for occ in occurrence_dts}
     return templates.TemplateResponse(
         request,
         "partials/day_detail.html",
-        {**day_detail_context(db, dt), "oob_chips": True, "extra_oob": extra_oob},
+        oob_day_detail_context(db, dt, affected),
     )
-
-
-def _get_appointment(db: Session, appointment_id: int) -> Appointment:
-    appt = db.get(Appointment, appointment_id)
-    if appt is None:
-        raise HTTPException(status_code=404, detail="Appointment not found")
-    return appt
 
 
 def _validate_client_and_fee(
@@ -219,19 +214,11 @@ def _series_targets(db: Session, appt: Appointment, scope: str) -> list[Appointm
     return [appt]
 
 
-def _oob_for_days(db: Session, day_strs: set[str], exclude: str) -> list[tuple]:
-    """Out-of-band chip refreshes for every affected day except the one being rendered."""
-    return [
-        (ds, day_appointments(db, datetime.strptime(ds, "%Y-%m-%d")))
-        for ds in sorted(day_strs - {exclude})
-    ]
-
-
 @router.get("/appointments/{appointment_id}/edit")
 async def edit_appointment_form(
     request: Request, appointment_id: int, db: Session = Depends(get_db)
 ):
-    appt = _get_appointment(db, appointment_id)
+    appt = get_appointment(db, appointment_id)
     clients = db.query(Client).order_by(Client.last_name).all()
     return templates.TemplateResponse(
         request,
@@ -264,11 +251,8 @@ async def update_appointment(
     modifier_4: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    appt = _get_appointment(db, appointment_id)
-    try:
-        new_dt = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid date or time") from exc
+    appt = get_appointment(db, appointment_id)
+    new_dt = parse_datetime(date, time)
     _validate_client_and_fee(db, client_id, fee)
 
     apply_future = scope == "future" and bool(appt.series_id)
@@ -296,15 +280,10 @@ async def update_appointment(
     db.commit()
 
     affected |= {t.datetime.strftime("%Y-%m-%d") for t in targets}
-    primary_day = appt.datetime.strftime("%Y-%m-%d")
     return templates.TemplateResponse(
         request,
         "partials/day_detail.html",
-        {
-            **day_detail_context(db, appt.datetime),
-            "oob_chips": True,
-            "extra_oob": _oob_for_days(db, affected, primary_day),
-        },
+        oob_day_detail_context(db, appt.datetime, affected),
     )
 
 
@@ -318,26 +297,18 @@ async def reschedule_appointment(
     """Move a single appointment to another day (its time of day is kept), for the
     calendar's drag-and-drop. Series membership is unchanged — only this occurrence
     moves, matching a "this appointment only" edit."""
-    appt = _get_appointment(db, appointment_id)
-    try:
-        target_day = datetime.strptime(date, "%Y-%m-%d").date()
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid date") from exc
+    appt = get_appointment(db, appointment_id)
+    target_day = parse_date(date)
 
     old_dt = appt.datetime
     appt.datetime = datetime.combine(target_day, old_dt.time())
     db.commit()
 
     affected = {old_dt.strftime("%Y-%m-%d"), appt.datetime.strftime("%Y-%m-%d")}
-    primary_day = appt.datetime.strftime("%Y-%m-%d")
     return templates.TemplateResponse(
         request,
         "partials/day_detail.html",
-        {
-            **day_detail_context(db, appt.datetime),
-            "oob_chips": True,
-            "extra_oob": _oob_for_days(db, affected, primary_day),
-        },
+        oob_day_detail_context(db, appt.datetime, affected),
     )
 
 
@@ -348,7 +319,7 @@ async def delete_appointment(
     scope: str = Form("this"),
     db: Session = Depends(get_db),
 ):
-    appt = _get_appointment(db, appointment_id)
+    appt = get_appointment(db, appointment_id)
     primary_dt = appt.datetime
     targets = _series_targets(db, appt, scope)
     affected = {t.datetime.strftime("%Y-%m-%d") for t in targets}
@@ -356,13 +327,8 @@ async def delete_appointment(
         db.delete(target)
     db.commit()
 
-    primary_day = primary_dt.strftime("%Y-%m-%d")
     return templates.TemplateResponse(
         request,
         "partials/day_detail.html",
-        {
-            **day_detail_context(db, primary_dt),
-            "oob_chips": True,
-            "extra_oob": _oob_for_days(db, affected, primary_day),
-        },
+        oob_day_detail_context(db, primary_dt, affected),
     )
