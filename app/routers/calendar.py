@@ -257,6 +257,11 @@ async def update_appointment(
     fee: float = Form(None),
     status: str = Form("scheduled"),
     scope: str = Form("this"),
+    diagnosis_codes: str = Form(""),
+    modifier_1: str = Form(""),
+    modifier_2: str = Form(""),
+    modifier_3: str = Form(""),
+    modifier_4: str = Form(""),
     db: Session = Depends(get_db),
 ):
     appt = _get_appointment(db, appointment_id)
@@ -283,6 +288,11 @@ async def update_appointment(
         if fee is not None:
             target.fee = fee
         target.status = status
+        target.diagnosis_codes = diagnosis_codes.strip() or None
+        target.modifier_1 = modifier_1.strip() or None
+        target.modifier_2 = modifier_2.strip() or None
+        target.modifier_3 = modifier_3.strip() or None
+        target.modifier_4 = modifier_4.strip() or None
     db.commit()
 
     affected |= {t.datetime.strftime("%Y-%m-%d") for t in targets}

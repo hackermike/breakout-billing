@@ -604,3 +604,16 @@ def test_credit_fee_percent_saved_in_settings(client, db):
                 follow_redirects=False)
     from app.crud import get_or_create_provider
     assert get_or_create_provider(db).credit_fee_percent == 2.5
+
+
+def test_edit_sets_session_diagnosis_and_modifiers(client, db, sample_appointment):
+    client.post(
+        f"/appointments/{sample_appointment.id}/edit",
+        data={"client_id": sample_appointment.client_id, "date": "2026-07-15",
+              "time": "10:00", "cpt_code": "90837", "status": "completed",
+              "diagnosis_codes": "F33.0", "modifier_1": "95", "modifier_2": "GT"},
+        follow_redirects=False,
+    )
+    db.refresh(sample_appointment)
+    assert sample_appointment.diagnosis_codes == "F33.0"
+    assert sample_appointment.modifiers == ["95", "GT"]
