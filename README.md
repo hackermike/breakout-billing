@@ -27,7 +27,7 @@ tool one therapist can run on their own laptop.
 - **Edit & reschedule** — change any appointment, move it to another day (calendar chips update live), or delete it.
 - **Recurring appointments** — book a standing slot every N weeks or N months for up to 52 sessions in one go, and edit or cancel *this and all future* occurrences as a group.
 - **Superbills** — generate a professional PDF a client submits to their insurer for out-of-network reimbursement, with your NPI, CPT/ICD-10 codes, fees, and payments.
-- **Reports** — income by month (charged, collected, card fees, and net), income by payer, and outstanding balances (accounts receivable).
+- **Reports** — income grouped by month, quarter, or year over any date range (charged, collected, card fees, and net), income by payer, outstanding balances (accounts receivable), and per-client statements.
 - **Email reminders** — opt clients in per person; a "Reminders due" panel sends the next couple of days' appointment reminders (preview-only until you configure SMTP — nothing is delivered and reminders stay due, so none are lost). Setup guide: [docs/EMAIL-SETUP.md](docs/EMAIL-SETUP.md).
 - **Settings** — store your provider details (NPI, credentials, tax ID) once; they flow onto every superbill.
 - **Light & dark mode**, and everything runs on your own machine.

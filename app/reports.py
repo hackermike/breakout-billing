@@ -1,24 +1,23 @@
 """Bookkeeping report aggregations.
 
-Revenue is recognized when a session is **completed** (its fee becomes charged).
-"Collected" is all cash received (any payment). Outstanding balance (A/R) is
-completed-session charges minus payments on those sessions, per client — the same
-`app.finances.balance_on_services` used by the client detail page.
+Revenue is recognized when a session is **completed** (its fee becomes charged);
+a written-off fee recognizes nothing. "Collected" is all cash received, net of
+refunds. Income views (charged / collected / card fees / net) can be scoped to a
+date range and grouped by month, quarter, or year. Accounts receivable is a
+*current* balance, so it is never date-scoped.
 
 The pure `_*` helpers work off an already-loaded list of appointments so a single
 dashboard render only queries the database once (see `dashboard`).
 """
 from collections import defaultdict
+from datetime import date
 
 from sqlalchemy.orm import Session, joinedload
 
-from app.finances import (
-    appt_charged,
-    balance_on_services,
-    total_collected,
-    total_servicer_fees,
-)
+from app.finances import appt_charged, balance_on_services
 from app.models.appointment import Appointment
+
+GROUPS = ("month", "quarter", "year")
 
 
 def _appointments(db: Session) -> list[Appointment]:
@@ -29,50 +28,90 @@ def _appointments(db: Session) -> list[Appointment]:
     )
 
 
-def _summary(appts: list[Appointment]) -> dict:
-    services = balance_on_services(appts)
-    collected = total_collected(appts)
-    fees = total_servicer_fees(appts)
+def _in_range(d: date, start: date | None, end: date | None) -> bool:
+    return (start is None or d >= start) and (end is None or d <= end)
+
+
+def _period_key(d: date, group: str) -> str:
+    if group == "year":
+        return f"{d.year}"
+    if group == "quarter":
+        return f"{d.year}-Q{(d.month - 1) // 3 + 1}"
+    return d.strftime("%Y-%m")
+
+
+def _charged_in_range(appts, start, end) -> float:
+    return round(sum(
+        appt_charged(a) for a in appts if _in_range(a.datetime.date(), start, end)
+    ), 2)
+
+
+def _collected_in_range(appts, start, end) -> float:
+    return round(sum(
+        p.signed_amount for a in appts for p in a.payments
+        if _in_range(p.payment_date, start, end)
+    ), 2)
+
+
+def _fees_in_range(appts, start, end) -> float:
+    return round(sum(
+        p.servicer_fee or 0 for a in appts for p in a.payments
+        if _in_range(p.payment_date, start, end)
+    ), 2)
+
+
+def _summary(appts: list[Appointment], start=None, end=None) -> dict:
+    charged = _charged_in_range(appts, start, end)
+    collected = _collected_in_range(appts, start, end)
+    fees = _fees_in_range(appts, start, end)
     return {
-        "charged": services["charged"],
-        "collected": collected,   # all cash received, net of refunds (cash-flow view)
-        "servicer_fees": fees,    # card-processor fees paid out
-        "net_collected": round(collected - fees, 2),  # what actually reaches the practice
-        "outstanding": services["outstanding"],  # A/R, completed-scoped (matches _outstanding)
+        "charged": charged,
+        "collected": collected,          # cash received in range, net of refunds
+        "servicer_fees": fees,           # card-processor fees paid out
+        "net_collected": round(collected - fees, 2),
+        # A/R is a current balance, not scoped to the selected range.
+        "outstanding": balance_on_services(appts)["outstanding"],
     }
 
 
-def _by_month(appts: list[Appointment]) -> list[dict]:
+def _by_period(appts: list[Appointment], group: str, start=None, end=None) -> list[dict]:
     charged = defaultdict(float)
     collected = defaultdict(float)
     fees = defaultdict(float)
     for a in appts:
         billed = appt_charged(a)
-        if billed:
-            charged[a.datetime.strftime("%Y-%m")] += billed
+        if billed and _in_range(a.datetime.date(), start, end):
+            charged[_period_key(a.datetime.date(), group)] += billed
         for p in a.payments:
-            month = p.payment_date.strftime("%Y-%m")
-            collected[month] += p.signed_amount
-            fees[month] += p.servicer_fee or 0
+            if _in_range(p.payment_date, start, end):
+                k = _period_key(p.payment_date, group)
+                collected[k] += p.signed_amount
+                fees[k] += p.servicer_fee or 0
 
-    months = sorted(set(charged) | set(collected))
+    keys = sorted(set(charged) | set(collected))
     return [
         {
-            "month": m,
-            "charged": round(charged[m], 2),
-            "collected": round(collected[m], 2),
-            "servicer_fees": round(fees[m], 2),
-            "net_collected": round(collected[m] - fees[m], 2),
+            "period": k,
+            "charged": round(charged[k], 2),
+            "collected": round(collected[k], 2),
+            "servicer_fees": round(fees[k], 2),
+            "net_collected": round(collected[k] - fees[k], 2),
         }
-        for m in months
+        for k in keys
     ]
 
 
-def _by_payer(appts: list[Appointment]) -> list[dict]:
+def _by_month(appts: list[Appointment]) -> list[dict]:
+    """Month-keyed income (kept for the per-view wrapper and its tests)."""
+    return [{"month": r["period"], **r} for r in _by_period(appts, "month")]
+
+
+def _by_payer(appts: list[Appointment], start=None, end=None) -> list[dict]:
     totals = defaultdict(float)
     for a in appts:
         for p in a.payments:
-            totals[p.payer or "unknown"] += p.signed_amount
+            if _in_range(p.payment_date, start, end):
+                totals[p.payer or "unknown"] += p.signed_amount
     return [
         {"payer": payer, "total": round(total, 2)}
         for payer, total in sorted(totals.items(), key=lambda kv: -kv[1])
@@ -100,14 +139,48 @@ def _outstanding(appts: list[Appointment]) -> list[dict]:
     return sorted(rows, key=lambda r: -r["balance"])
 
 
-def dashboard(db: Session) -> dict:
+def _by_client(appts: list[Appointment], start=None, end=None) -> list[dict]:
+    """Per-client statement rows: sessions/charged/collected in the selected range,
+    plus the client's current outstanding balance."""
+    groups: dict[int, list[Appointment]] = defaultdict(list)
+    names: dict[int, str] = {}
+    for a in appts:
+        groups[a.client_id].append(a)
+        names[a.client_id] = a.client.full_name
+
+    rows = []
+    for cid, client_appts in groups.items():
+        charged = _charged_in_range(client_appts, start, end)
+        collected = _collected_in_range(client_appts, start, end)
+        sessions = sum(
+            1 for a in client_appts
+            if appt_charged(a) and _in_range(a.datetime.date(), start, end)
+        )
+        balance = balance_on_services(client_appts)["outstanding"]
+        if charged or collected or abs(balance) > 0.005:
+            rows.append({
+                "client_id": cid,
+                "client": names[cid],
+                "sessions": sessions,
+                "charged": charged,
+                "collected": collected,
+                "balance": balance,
+            })
+    return sorted(rows, key=lambda r: (-r["balance"], r["client"]))
+
+
+def dashboard(db: Session, group: str = "month", start=None, end=None) -> dict:
     """Load appointments once and derive every report view from that snapshot."""
     appts = _appointments(db)
     return {
-        "summary": _summary(appts),
-        "by_month": _by_month(appts),
-        "by_payer": _by_payer(appts),
+        "summary": _summary(appts, start, end),
+        "group": group,
+        "by_period": _by_period(appts, group, start, end),
+        "by_payer": _by_payer(appts, start, end),
         "outstanding": _outstanding(appts),
+        "by_client": _by_client(appts, start, end),
+        "start": start,
+        "end": end,
     }
 
 
