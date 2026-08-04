@@ -52,12 +52,12 @@
           </span>
           <button hx-get="/payments/{{ p.id }}/edit-form"
                   hx-target="#pay-edit-{{ p.id }}" hx-swap="innerHTML"
-                  title="Edit payment"
+                  title="Edit payment" aria-label="Edit payment"
                   class="opacity-50 hover:opacity-100 transition-opacity">✎</button>
           <button hx-post="/payments/{{ p.id }}/delete"
                   hx-target="#day-detail" hx-swap="innerHTML"
                   hx-confirm="Delete this payment? This cannot be undone."
-                  title="Delete payment"
+                  title="Delete payment" aria-label="Delete payment"
                   class="opacity-50 hover:opacity-100 hover:text-red-600 transition-opacity">✕</button>
         </span>
       </div>

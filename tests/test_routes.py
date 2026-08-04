@@ -746,3 +746,30 @@ def test_delete_payment(client, db, sample_appointment):
 
 def test_delete_payment_unknown_404(client):
     assert client.post("/payments/9999/delete").status_code == 404
+
+
+def test_calendar_day_cells_are_keyboard_operable(client):
+    r = client.get("/calendar")
+    assert r.status_code == 200
+    assert 'role="button"' in r.text
+    assert 'tabindex="0"' in r.text
+    assert "keyup[key==" in r.text  # Enter activates a focused day
+
+
+def test_client_detail_shows_account_credit(client, db, sample_client):
+    from datetime import date, datetime
+
+    a = Appointment(client_id=sample_client.id, datetime=datetime(2026, 7, 1, 9, 0),
+                    fee=100.0, status="completed", cpt_code="90837")
+    db.add(a)
+    db.commit()
+    db.refresh(a)
+    db.add(Payment(appointment_id=a.id, amount=150.0, payment_date=date(2026, 7, 1)))
+    db.commit()
+
+    r = client.get(f"/clients/{sample_client.id}")
+    assert r.status_code == 200
+    # The summary card labels an overpayment as a positive "Account credit"
+    # rather than a bare negative balance.
+    assert "Account credit" in r.text
+    assert "$50.00" in r.text
