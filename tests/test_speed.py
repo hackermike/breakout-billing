@@ -23,7 +23,7 @@ def test_calendar_response_under_budget(client, db, sample_client):
     assert elapsed < 1.0, f"calendar took {elapsed:.3f}s"
 
 
-def test_superbill_generation_under_budget(client, db, sample_client):
+def test_superbill_generation_under_budget(client, db, sample_client, sample_provider):
     _seed_month(db, sample_client)
     start = time.perf_counter()
     r = client.get(
