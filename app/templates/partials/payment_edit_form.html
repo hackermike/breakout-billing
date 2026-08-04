@@ -1,0 +1,73 @@
+<form hx-post="/payments/{{ payment.id }}/edit"
+      hx-target="#day-detail" hx-swap="innerHTML"
+      class="mt-2 p-3 border border-slate-200 dark:border-slate-700 rounded-lg
+             bg-slate-50 dark:bg-slate-800 space-y-2.5 text-sm">
+  <div class="font-medium text-gray-700 dark:text-gray-200">Edit payment</div>
+
+  <div class="flex gap-2">
+    <label class="block flex-1">
+      <span class="text-xs text-gray-500 dark:text-gray-400">Amount ($)</span>
+      <input type="number" name="amount" step="0.01" min="0"
+             value="{{ '%.2f'|format(payment.amount) }}" required
+             class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
+                    bg-white dark:bg-slate-900" />
+    </label>
+    <label class="block flex-1">
+      <span class="text-xs text-gray-500 dark:text-gray-400">Date</span>
+      <input type="date" name="payment_date" value="{{ payment.payment_date.strftime('%Y-%m-%d') }}" required
+             class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
+                    bg-white dark:bg-slate-900" />
+    </label>
+  </div>
+
+  <div class="flex gap-2">
+    <label class="block flex-1">
+      <span class="text-xs text-gray-500 dark:text-gray-400">Method</span>
+      <select name="payment_method"
+              onchange="this.closest('form').querySelector('.credit-fee-field').classList.toggle('hidden', this.value !== 'credit')"
+              class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
+                     bg-white dark:bg-slate-900">
+        {% for value, label in [('credit', 'Credit card'), ('cash', 'Cash'),
+              ('check', 'Check'), ('insurance', 'Insurance'), ('other', 'Other')] %}
+        <option value="{{ value }}" {{ 'selected' if value == payment.payment_method }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="block flex-1">
+      <span class="text-xs text-gray-500 dark:text-gray-400">Payer</span>
+      <select name="payer"
+              class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
+                     bg-white dark:bg-slate-900">
+        {% for value, label in [('client', 'Client (self-pay)'), ('insurance', 'Insurance')] %}
+        <option value="{{ value }}" {{ 'selected' if value == payment.payer }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+
+  <label class="block credit-fee-field {{ '' if payment.payment_method == 'credit' else 'hidden' }}">
+    <span class="text-xs text-gray-500 dark:text-gray-400">Card processor fee ($)</span>
+    <input type="number" name="servicer_fee" step="0.01" min="0"
+           value="{{ '%.2f'|format(payment.servicer_fee or 0) }}"
+           class="mt-0.5 w-full border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5
+                  bg-white dark:bg-slate-900" />
+  </label>
+
+  <label class="flex items-center gap-2">
+    <input type="checkbox" name="is_refund" value="1" {{ 'checked' if payment.is_refund }}
+           class="rounded border-gray-300 dark:border-slate-600 text-teal-600" />
+    <span class="text-xs text-gray-600 dark:text-gray-300">This is a refund to the client</span>
+  </label>
+
+  <div class="flex gap-2 pt-1">
+    <button type="submit"
+            class="flex-1 px-3 py-1.5 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors">
+      Save changes
+    </button>
+    <button type="button" onclick="this.closest('form').remove()"
+            class="px-3 py-1.5 border border-gray-200 dark:border-slate-600 rounded-md
+                   hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+      Cancel
+    </button>
+  </div>
+</form>

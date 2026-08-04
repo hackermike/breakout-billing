@@ -40,16 +40,28 @@
       {% endif %}
 
       {% for p in appt.payments %}
-      <div class="mt-1 text-xs opacity-60 flex justify-between">
+      <div class="mt-1 text-xs opacity-70 flex justify-between items-center gap-2 group">
         <span>
           {{ p.payment_date.strftime('%-m/%-d') }} &middot;
           {% if p.is_refund %}refund{% else %}{{ p.payment_method }}{% endif %} ({{ p.payer }})
           {% if p.servicer_fee %}<span class="opacity-70">− ${{ '%.2f'|format(p.servicer_fee) }} fee</span>{% endif %}
         </span>
-        <span class="{{ 'text-red-600 dark:text-red-300' if p.is_refund }}">
-          {{ '−' if p.is_refund }}${{ '%.2f'|format(p.amount) }}
+        <span class="flex items-center gap-1.5 shrink-0">
+          <span class="{{ 'text-red-600 dark:text-red-300' if p.is_refund }}">
+            {{ '−' if p.is_refund }}${{ '%.2f'|format(p.amount) }}
+          </span>
+          <button hx-get="/payments/{{ p.id }}/edit-form"
+                  hx-target="#pay-edit-{{ p.id }}" hx-swap="innerHTML"
+                  title="Edit payment"
+                  class="opacity-50 hover:opacity-100 transition-opacity">✎</button>
+          <button hx-post="/payments/{{ p.id }}/delete"
+                  hx-target="#day-detail" hx-swap="innerHTML"
+                  hx-confirm="Delete this payment? This cannot be undone."
+                  title="Delete payment"
+                  class="opacity-50 hover:opacity-100 hover:text-red-600 transition-opacity">✕</button>
         </span>
       </div>
+      <div id="pay-edit-{{ p.id }}"></div>
       {% endfor %}
 
       <div class="mt-2 flex flex-wrap gap-2">

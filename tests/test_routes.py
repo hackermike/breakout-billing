@@ -644,3 +644,70 @@ def test_drag_reschedule_rejects_bad_date(client, sample_appointment):
 def test_drag_reschedule_unknown_appointment_404(client):
     r = client.post("/appointments/999999/reschedule", data={"date": "2026-07-20"})
     assert r.status_code == 404
+
+
+def _make_payment(db, appt, amount=100.0, payment_method="credit", servicer_fee=0.0,
+                  is_refund=False):
+    from datetime import date as _date
+    p = Payment(appointment_id=appt.id, amount=amount, payment_date=_date(2026, 7, 15),
+                payment_method=payment_method, payer="client",
+                servicer_fee=servicer_fee, is_refund=is_refund)
+    db.add(p)
+    db.commit()
+    db.refresh(p)
+    return p
+
+
+def test_edit_payment_form_prefilled(client, db, sample_appointment):
+    p = _make_payment(db, sample_appointment, amount=75.0)
+    r = client.get(f"/payments/{p.id}/edit-form")
+    assert r.status_code == 200
+    assert 'value="75.00"' in r.text
+    assert "Save changes" in r.text
+
+
+def test_edit_payment_updates_fields(client, db, sample_appointment):
+    p = _make_payment(db, sample_appointment, amount=100.0, payment_method="credit",
+                      servicer_fee=2.9)
+    r = client.post(f"/payments/{p.id}/edit",
+                    data={"amount": "120", "payment_date": "2026-07-20",
+                          "payment_method": "cash", "payer": "client"})
+    assert r.status_code == 200
+    db.refresh(p)
+    assert p.amount == 120.0
+    assert p.payment_method == "cash"
+    assert p.servicer_fee == 0.0  # cleared when not a credit-card payment
+    assert p.payment_date.strftime("%Y-%m-%d") == "2026-07-20"
+
+
+def test_edit_payment_keeps_credit_fee(client, db, sample_appointment):
+    p = _make_payment(db, sample_appointment, payment_method="credit", servicer_fee=2.9)
+    client.post(f"/payments/{p.id}/edit",
+                data={"amount": "100", "payment_date": "2026-07-15",
+                      "payment_method": "credit", "payer": "client", "servicer_fee": "3.50"})
+    db.refresh(p)
+    assert p.servicer_fee == 3.5
+
+
+def test_edit_payment_negative_rejected(client, db, sample_appointment):
+    p = _make_payment(db, sample_appointment)
+    r = client.post(f"/payments/{p.id}/edit",
+                    data={"amount": "-5", "payment_date": "2026-07-15"})
+    assert r.status_code == 400
+
+
+def test_edit_payment_unknown_404(client):
+    r = client.post("/payments/9999/edit",
+                    data={"amount": "5", "payment_date": "2026-07-15"})
+    assert r.status_code == 404
+
+
+def test_delete_payment(client, db, sample_appointment):
+    p = _make_payment(db, sample_appointment)
+    r = client.post(f"/payments/{p.id}/delete")
+    assert r.status_code == 200
+    assert db.query(Payment).filter_by(id=p.id).count() == 0
+
+
+def test_delete_payment_unknown_404(client):
+    assert client.post("/payments/9999/delete").status_code == 404
