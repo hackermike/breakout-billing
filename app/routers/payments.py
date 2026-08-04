@@ -1,23 +1,20 @@
-from datetime import date, datetime
+from datetime import date
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from app.crud import day_detail_context, get_or_create_provider
+from app.crud import (
+    day_detail_context,
+    get_appointment,
+    get_or_create_provider,
+    parse_date,
+)
 from app.database import get_db
 from app.finances import appt_paid
-from app.models.appointment import Appointment
 from app.models.payment import Payment
 from app.templates_config import templates
 
 router = APIRouter()
-
-
-def _get_appointment(db: Session, appointment_id: int) -> Appointment:
-    appt = db.query(Appointment).filter(Appointment.id == appointment_id).first()
-    if appt is None:
-        raise HTTPException(status_code=404, detail="Appointment not found")
-    return appt
 
 
 def _get_payment(db: Session, payment_id: int) -> Payment:
@@ -43,7 +40,7 @@ def _servicer_fee(method: str, is_refund: bool, amount: float, percent: float | 
 
 @router.get("/appointments/{appointment_id}/payment-form")
 async def payment_form(request: Request, appointment_id: int, db: Session = Depends(get_db)):
-    appt = _get_appointment(db, appointment_id)
+    appt = get_appointment(db, appointment_id)
     provider = get_or_create_provider(db)
     return templates.TemplateResponse(
         request,
@@ -70,13 +67,10 @@ async def create_payment(
     is_refund: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    appt = _get_appointment(db, appointment_id)
+    appt = get_appointment(db, appointment_id)
     if amount < 0:
         raise HTTPException(status_code=400, detail="Amount cannot be negative")
-    try:
-        pay_date = datetime.strptime(payment_date, "%Y-%m-%d").date()
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid payment date") from exc
+    pay_date = parse_date(payment_date, field="payment date")
 
     refund = bool(is_refund)
     fee = _servicer_fee(payment_method, refund, amount, servicer_fee_percent)
@@ -105,7 +99,7 @@ async def create_payment(
 async def toggle_write_off(
     request: Request, appointment_id: int, db: Session = Depends(get_db)
 ):
-    appt = _get_appointment(db, appointment_id)
+    appt = get_appointment(db, appointment_id)
     appt.written_off = not appt.written_off
     db.commit()
     return _day_detail_response(request, db, appt.datetime)
@@ -134,10 +128,7 @@ async def update_payment(
     payment = _get_payment(db, payment_id)
     if amount < 0:
         raise HTTPException(status_code=400, detail="Amount cannot be negative")
-    try:
-        pay_date = datetime.strptime(payment_date, "%Y-%m-%d").date()
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid payment date") from exc
+    pay_date = parse_date(payment_date, field="payment date")
 
     refund = bool(is_refund)
     payment.amount = amount

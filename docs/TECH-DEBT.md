@@ -32,19 +32,21 @@ sets the duration (overridable) on the booking and edit forms.
 
 ## Code structure / DRY
 
-- **Duplicated `_get_appointment` helper** in `calendar.py` and `payments.py` —
-  move to `crud.py`.
+- **Duplicated `_get_appointment` helper** — ✅ done: consolidated as
+  `crud.get_appointment`, used by `calendar.py` and `payments.py`.
+- **Manual form parsing per endpoint** — ✅ done: `crud.parse_date` /
+  `crud.parse_datetime` centralize date parsing + the 400/422 error, used by the
+  calendar, payments, and client routers. (A fuller Pydantic-form-model approach
+  and shared `fee >= 0` validation could still follow.)
+- **OOB chip refresh** — ✅ encapsulated: `crud.oob_day_detail_context` builds the
+  day-detail + out-of-band chip response for booking/editing/deleting/
+  rescheduling. Still issues one query per affected day (fine for ≤52 rows);
+  batching the query is a further, optional win.
 - **Duplicated form markup.** `appointment_form.html` and
   `appointment_edit_form.html` share ~80% of their fields; the input class
   strings (`border ... dark:bg-slate-900`) are copy-pasted across every template.
   Extract Jinja macros for form fields, and/or a couple of component CSS classes
-  (`.input`, `.btn`) to stop the drift.
-- **Manual form parsing per endpoint.** Each POST re-parses dates and validates by
-  hand. A small shared parser (or Pydantic form models) would centralize date
-  parsing, `fee >= 0`, and URL-scheme checks.
-- **OOB chip refresh is ad-hoc and N+1.** `extra_oob` + `day_appointments` per
-  affected day is repeated in create/update/delete and issues one query per day
-  (up to 52 for a big series edit). Encapsulate the pattern and batch the query.
+  (`.input`, `.btn`) to stop the drift. **(Still open — the remaining DRY item.)**
 
 ## Frontend
 

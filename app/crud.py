@@ -1,6 +1,7 @@
 """Small data-access helpers shared across routers."""
-from datetime import datetime
+from datetime import date, datetime
 
+from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from app.finances import appt_paid
@@ -65,3 +66,47 @@ def appointment_payments(db: Session, appointment_id: int) -> list[Payment]:
         .order_by(Payment.payment_date)
         .all()
     )
+
+
+def get_appointment(db: Session, appointment_id: int) -> Appointment:
+    """Fetch an appointment or raise 404 — shared by the calendar and payment routers."""
+    appt = db.get(Appointment, appointment_id)
+    if appt is None:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    return appt
+
+
+def parse_date(value: str, *, field: str = "date", status: int = 400) -> date:
+    """Parse a YYYY-MM-DD string or raise a helpful HTTP error."""
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError as exc:
+        raise HTTPException(status_code=status, detail=f"Invalid {field}") from exc
+
+
+def parse_datetime(date_str: str, time_str: str) -> datetime:
+    """Parse a YYYY-MM-DD + HH:MM pair or raise 400."""
+    try:
+        return datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid date or time") from exc
+
+
+def oob_for_days(db: Session, day_strs: set[str], exclude: str) -> list[tuple]:
+    """Out-of-band chip refreshes for every affected day except the one being rendered."""
+    return [
+        (ds, day_appointments(db, datetime.strptime(ds, "%Y-%m-%d")))
+        for ds in sorted(day_strs - {exclude})
+    ]
+
+
+def oob_day_detail_context(db: Session, primary_dt: datetime, affected_days: set[str]) -> dict:
+    """Day-detail context for the clicked day plus out-of-band chip refreshes for
+    every other affected day — the response shape shared by booking, editing,
+    deleting, and rescheduling."""
+    primary = primary_dt.strftime("%Y-%m-%d")
+    return {
+        **day_detail_context(db, primary_dt),
+        "oob_chips": True,
+        "extra_oob": oob_for_days(db, affected_days, primary),
+    }

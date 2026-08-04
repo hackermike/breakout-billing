@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session, joinedload
 
-from app.crud import STATUS_COLORS
+from app.crud import STATUS_COLORS, parse_date
 from app.database import get_db
 from app.finances import appt_paid, balance_on_services
 from app.finances import completed as finances_completed
@@ -56,14 +56,11 @@ async def new_client_form(request: Request):
 
 
 def _parse_dob(dob: str):
-    """Empty -> None; a malformed value is rejected rather than silently dropped
-    (which on edit would clear an existing DOB)."""
+    """Empty -> None; a malformed value is rejected (422) rather than silently
+    dropped (which on edit would clear an existing DOB)."""
     if not dob:
         return None
-    try:
-        return datetime.strptime(dob, "%Y-%m-%d").date()
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail="Date of birth must use YYYY-MM-DD") from exc
+    return parse_date(dob, field="date of birth", status=422)
 
 
 def _apply_couple_fields(client: Client, is_couple: str, partner_first_name: str,
