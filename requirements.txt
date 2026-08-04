@@ -7,3 +7,7 @@ python-dotenv==1.2.2
 fpdf2==2.7.9
 alembic==1.18.5
 itsdangerous==2.2.0
+
+# Shared domain library (CPT catalog, money math, superbill PDF). Lives in this
+# repo under breakout-core/; the care platform depends on the same package.
+-e ./breakout-core
