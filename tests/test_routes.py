@@ -746,3 +746,34 @@ def test_delete_payment(client, db, sample_appointment):
 
 def test_delete_payment_unknown_404(client):
     assert client.post("/payments/9999/delete").status_code == 404
+
+
+def test_calendar_day_cells_are_keyboard_operable(client):
+    import re
+    r = client.get("/calendar")
+    assert r.status_code == 200
+    # A day cell is a focusable button, not just a clickable div.
+    cell = re.search(r'data-date="[^"]+"[^>]*role="button"[^>]*tabindex="0"', r.text)
+    assert cell is not None
+    # Both Enter and Space activate a focused day.
+    assert "keyup[key=='Enter'||key===' ']" in r.text
+
+
+def test_client_detail_shows_account_credit(client, db, sample_client):
+    from datetime import date, datetime
+
+    a = Appointment(client_id=sample_client.id, datetime=datetime(2026, 7, 1, 9, 0),
+                    fee=100.0, status="completed", cpt_code="90837")
+    db.add(a)
+    db.commit()
+    db.refresh(a)
+    db.add(Payment(appointment_id=a.id, amount=150.0, payment_date=date(2026, 7, 1)))
+    db.commit()
+
+    r = client.get(f"/clients/{sample_client.id}")
+    assert r.status_code == 200
+    # The summary card and the history row show a positive credit, not a bare
+    # negative balance, anywhere on the page.
+    assert "Account credit" in r.text
+    assert "$50.00" in r.text
+    assert "$-50.00" not in r.text

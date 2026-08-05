@@ -40,11 +40,18 @@
 
   <!-- Stat cards -->
   <div class="grid grid-cols-4 gap-4 mb-6">
+    {% if outstanding > 0.005 %}
+      {% set balance_label, balance_value, balance_color = 'Balance', money(outstanding), 'text-red-600 dark:text-red-400' %}
+    {% elif outstanding < -0.005 %}
+      {% set balance_label, balance_value, balance_color = 'Account credit', money(-outstanding), 'text-amber-600 dark:text-amber-400' %}
+    {% else %}
+      {% set balance_label, balance_value, balance_color = 'Balance', money(0), 'text-green-600 dark:text-green-400' %}
+    {% endif %}
     {% set stats = [
       ('Sessions', completed_count, 'text-gray-800 dark:text-gray-100'),
       ('Charged', money(charged), 'text-gray-800 dark:text-gray-100'),
       ('Paid', money(paid), 'text-green-600 dark:text-green-400'),
-      ('Balance', money(outstanding), 'text-red-600 dark:text-red-400' if outstanding > 0.005 else 'text-green-600 dark:text-green-400'),
+      (balance_label, balance_value, balance_color),
     ] %}
     {% for label, value, color in stats %}
     <div class="p-4 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
@@ -166,8 +173,12 @@
               <td class="px-3 py-2 font-mono text-xs">{{ appt.cpt_code }}</td>
               <td class="px-3 py-2 text-right">{{ money(appt.fee) }}</td>
               <td class="px-3 py-2 text-right">{{ money(apaid) }}</td>
-              <td class="px-3 py-2 text-right {{ 'text-red-600 dark:text-red-400 font-medium' if abalance > 0.005 and appt.status == 'completed' }}">
-                {{ money(abalance) if appt.status == 'completed' else '—' }}
+              <td class="px-3 py-2 text-right
+                         {{ 'text-red-600 dark:text-red-400 font-medium' if abalance > 0.005 and appt.status == 'completed'
+                            else ('text-amber-600 dark:text-amber-400 font-medium' if abalance < -0.005 and appt.status == 'completed') }}">
+                {% if appt.status != 'completed' %}—
+                {% elif abalance < -0.005 %}{{ money(-abalance) }} cr
+                {% else %}{{ money(abalance) }}{% endif %}
               </td>
               <td class="px-3 py-2">
                 <span class="text-xs px-2 py-0.5 rounded-full border {{ status_colors[appt.status] }}">

@@ -22,6 +22,18 @@
       localStorage.theme = html.classList.contains('dark') ? 'dark' : 'light';
     }
   </script>
+  <style>
+    /* A consistent, visible focus ring for keyboard users across every control.
+       Theme-aware so it keeps ≥3:1 contrast on both light and dark surfaces. */
+    :where(a, button, [role="button"], input, select, textarea):focus-visible {
+      outline: 2px solid #0d9488; /* teal-600 — contrast on light surfaces */
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+    .dark :where(a, button, [role="button"], input, select, textarea):focus-visible {
+      outline-color: #2dd4bf; /* teal-400 — contrast on dark surfaces */
+    }
+  </style>
 </head>
 <body class="bg-gray-50 dark:bg-slate-900 h-screen flex overflow-hidden text-gray-800 dark:text-gray-100 text-sm">
 
@@ -59,6 +71,7 @@
       <span></span>
       {% endif %}
       <button onclick="toggleTheme()" title="Toggle light/dark"
+              aria-label="Toggle light and dark mode"
               class="px-2 py-1 rounded-md text-slate-300 hover:bg-slate-800 transition-colors">
         <span class="dark:hidden">🌙</span>
         <span class="hidden dark:inline">☀️</span>

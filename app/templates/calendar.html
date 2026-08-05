@@ -11,6 +11,7 @@
       <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{{ month_name }} {{ year }}</h2>
       <div class="flex gap-2">
         <a href="/calendar?year={{ prev_year }}&month={{ prev_month }}"
+           aria-label="Previous month"
            class="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
           &larr;
         </a>
@@ -19,6 +20,7 @@
           Today
         </a>
         <a href="/calendar?year={{ next_year }}&month={{ next_month }}"
+           aria-label="Next month"
            class="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
           &rarr;
         </a>
@@ -44,9 +46,13 @@
           <div
             class="day-cell min-h-28 border-r border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50/70 dark:hover:bg-slate-700/60 cursor-pointer p-1.5 transition-colors"
             data-date="{{ date_str }}"
+            role="button" tabindex="0"
+            aria-label="View {{ month_name }} {{ day }}, {{ year }}"
+            onkeydown="if (event.key === ' ') event.preventDefault();"
             hx-get="/calendar/day/{{ date_str }}"
             hx-target="#day-detail"
             hx-swap="innerHTML"
+            hx-trigger="click, keyup[key=='Enter'||key===' ']"
           >
             <div class="flex justify-end mb-1">
               {% if is_today %}
