@@ -48,10 +48,11 @@
             data-date="{{ date_str }}"
             role="button" tabindex="0"
             aria-label="View {{ month_name }} {{ day }}, {{ year }}"
+            onkeydown="if (event.key === ' ') event.preventDefault();"
             hx-get="/calendar/day/{{ date_str }}"
             hx-target="#day-detail"
             hx-swap="innerHTML"
-            hx-trigger="click, keyup[key=='Enter']"
+            hx-trigger="click, keyup[key=='Enter'||key===' ']"
           >
             <div class="flex justify-end mb-1">
               {% if is_today %}

@@ -173,8 +173,12 @@
               <td class="px-3 py-2 font-mono text-xs">{{ appt.cpt_code }}</td>
               <td class="px-3 py-2 text-right">{{ money(appt.fee) }}</td>
               <td class="px-3 py-2 text-right">{{ money(apaid) }}</td>
-              <td class="px-3 py-2 text-right {{ 'text-red-600 dark:text-red-400 font-medium' if abalance > 0.005 and appt.status == 'completed' }}">
-                {{ money(abalance) if appt.status == 'completed' else '—' }}
+              <td class="px-3 py-2 text-right
+                         {{ 'text-red-600 dark:text-red-400 font-medium' if abalance > 0.005 and appt.status == 'completed'
+                            else ('text-amber-600 dark:text-amber-400 font-medium' if abalance < -0.005 and appt.status == 'completed') }}">
+                {% if appt.status != 'completed' %}—
+                {% elif abalance < -0.005 %}{{ money(-abalance) }} cr
+                {% else %}{{ money(abalance) }}{% endif %}
               </td>
               <td class="px-3 py-2">
                 <span class="text-xs px-2 py-0.5 rounded-full border {{ status_colors[appt.status] }}">

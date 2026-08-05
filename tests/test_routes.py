@@ -749,11 +749,14 @@ def test_delete_payment_unknown_404(client):
 
 
 def test_calendar_day_cells_are_keyboard_operable(client):
+    import re
     r = client.get("/calendar")
     assert r.status_code == 200
-    assert 'role="button"' in r.text
-    assert 'tabindex="0"' in r.text
-    assert "keyup[key==" in r.text  # Enter activates a focused day
+    # A day cell is a focusable button, not just a clickable div.
+    cell = re.search(r'data-date="[^"]+"[^>]*role="button"[^>]*tabindex="0"', r.text)
+    assert cell is not None
+    # Both Enter and Space activate a focused day.
+    assert "keyup[key=='Enter'||key===' ']" in r.text
 
 
 def test_client_detail_shows_account_credit(client, db, sample_client):
@@ -769,7 +772,8 @@ def test_client_detail_shows_account_credit(client, db, sample_client):
 
     r = client.get(f"/clients/{sample_client.id}")
     assert r.status_code == 200
-    # The summary card labels an overpayment as a positive "Account credit"
-    # rather than a bare negative balance.
+    # The summary card and the history row show a positive credit, not a bare
+    # negative balance, anywhere on the page.
     assert "Account credit" in r.text
     assert "$50.00" in r.text
+    assert "$-50.00" not in r.text

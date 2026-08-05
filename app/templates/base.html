@@ -23,11 +23,15 @@
     }
   </script>
   <style>
-    /* A consistent, visible focus ring for keyboard users across every control. */
+    /* A consistent, visible focus ring for keyboard users across every control.
+       Theme-aware so it keeps ≥3:1 contrast on both light and dark surfaces. */
     :where(a, button, [role="button"], input, select, textarea):focus-visible {
-      outline: 2px solid #14b8a6; /* teal-500 */
+      outline: 2px solid #0d9488; /* teal-600 — contrast on light surfaces */
       outline-offset: 2px;
       border-radius: 4px;
+    }
+    .dark :where(a, button, [role="button"], input, select, textarea):focus-visible {
+      outline-color: #2dd4bf; /* teal-400 — contrast on dark surfaces */
     }
   </style>
 </head>
