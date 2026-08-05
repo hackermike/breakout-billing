@@ -46,7 +46,7 @@ See [docs/USAGE.md](docs/USAGE.md) for a full walkthrough.
 
 ## Quick start (Mac)
 
-**Requirements:** Python 3.9 or newer. Check by opening Terminal (press `Cmd+Space`, type "Terminal") and running `python3 --version`. If you don't have it, download from [python.org/downloads](https://www.python.org/downloads/).
+**Requirements:** Python 3.11 or newer. Check by opening Terminal (press `Cmd+Space`, type "Terminal") and running `python3 --version`. If you don't have it, download from [python.org/downloads](https://www.python.org/downloads/).
 
 **Option A — Download (no tools needed)**
 
