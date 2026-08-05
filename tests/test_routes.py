@@ -777,3 +777,19 @@ def test_client_detail_shows_account_credit(client, db, sample_client):
     assert "Account credit" in r.text
     assert "$50.00" in r.text
     assert "$-50.00" not in r.text
+
+
+def test_client_detail_no_negative_zero_balance(client, db, sample_client):
+    # A tiny overpayment (rounding dust) must not render as "$-0.00".
+    from datetime import date, datetime
+
+    a = Appointment(client_id=sample_client.id, datetime=datetime(2026, 7, 1, 9, 0),
+                    fee=100.0, status="completed", cpt_code="90837")
+    db.add(a)
+    db.commit()
+    db.refresh(a)
+    db.add(Payment(appointment_id=a.id, amount=100.002, payment_date=date(2026, 7, 1)))
+    db.commit()
+    r = client.get(f"/clients/{sample_client.id}")
+    assert r.status_code == 200
+    assert "$-0.00" not in r.text
